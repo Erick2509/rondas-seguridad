@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Panel de Rondas</title>
+
+    <link rel="icon" href="data:,">
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #1f2937;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 26px;
+        }
+
+        header p {
+            margin: 5px 0 0;
+            color: #666;
+        }
+
+        .contenedor {
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .resumen {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .tarjeta {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow:
+                0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .numero {
+            font-size: 32px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .etiqueta {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .barra {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow:
+                0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .barra input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .titulo-rondas {
+            margin-bottom: 15px;
+        }
+
+        .ronda {
+            background: white;
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            box-shadow:
+                0 2px 8px rgba(0,0,0,0.07);
+        }
+
+        .ronda-superior {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .agente {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .estado {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .detalle {
+            margin-top: 10px;
+            line-height: 1.7;
+        }
+
+        .direccion {
+            color: #555;
+        }
+
+        .cargando {
+            background: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 12px;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .sin-resultados {
+            background: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 12px;
+            color: #666;
+        }
+
+        .actualizar {
+            border: 0;
+            padding: 11px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 600px) {
+
+            header h1 {
+                font-size: 22px;
+            }
+
+            .contenedor {
+                padding: 12px;
+            }
+
+            .numero {
+                font-size: 27px;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<header>
+
+    <h1>
+        🛡️ Panel de Rondas
+    </h1>
+
+    <p>
+        Control provisional de rondas de seguridad
+    </p>
+
+</header>
+
+
+<main class="contenedor">
+
+
+    <!-- RESUMEN -->
+
+    <section class="resumen">
+
+
+        <div class="tarjeta">
+
+            <div class="etiqueta">
+                Rondas cargadas
+            </div>
+
+            <div
+                id="totalRondas"
+                class="numero"
+            >
+                0
+            </div>
+
+        </div>
+
+
+        <div class="tarjeta">
+
+            <div class="etiqueta">
+                Rondas de hoy
+            </div>
+
+            <div
+                id="rondasHoy"
+                class="numero"
+            >
+                0
+            </div>
+
+        </div>
+
+
+        <div class="tarjeta">
+
+            <div class="etiqueta">
+                Agentes
+            </div>
+
+            <div
+                id="totalAgentes"
+                class="numero"
+            >
+                0
+            </div>
+
+        </div>
+
+
+        <div class="tarjeta">
+
+            <div class="etiqueta">
+                Puntos visitados
+            </div>
+
+            <div
+                id="totalPuntos"
+                class="numero"
+            >
+                0
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+    <!-- BUSCADOR -->
+
+    <section class="barra">
+
+        <input
+            type="search"
+            id="buscador"
+            placeholder="Buscar agente, punto, código o dirección..."
+        >
+
+        <button
+            id="btnActualizar"
+            class="actualizar"
+        >
+            🔄 Actualizar
+        </button>
+
+    </section>
+
+
+    <!-- ERROR -->
+
+    <div
+        id="error"
+        class="error"
+    ></div>
+
+
+    <!-- HISTORIAL -->
+
+    <h2 class="titulo-rondas">
+        Historial de rondas
+    </h2>
+
+
+    <div
+        id="cargando"
+        class="cargando"
+    >
+        Cargando rondas...
+    </div>
+
+
+    <div id="listaRondas"></div>
+
+
+</main>
+
+
+<script
+    type="module"
+    src="js/admin.js"
+></script>
+
+
+</body>
+
+</html>
