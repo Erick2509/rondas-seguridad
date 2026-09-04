@@ -18,48 +18,70 @@
 
         <div class="card shadow-sm mx-auto" style="max-width: 500px;">
 
-            <div class="card-body text-center">
+            <div class="card-body">
 
-                <h2 class="mb-4">🛡️ Rondas de Seguridad</h2>
-
-                <div id="cargando">
-                    <div class="spinner-border"></div>
-                    <p class="mt-3">Verificando punto...</p>
+                <div class="text-center mb-4">
+                    <div class="fs-1">🛡️</div>
+                    <h2>Rondas de Seguridad</h2>
+                    <p class="text-muted">
+                        Registro de punto de control
+                    </p>
                 </div>
 
+                <!-- Cargando -->
+                <div id="cargando" class="text-center">
+                    <div class="spinner-border"></div>
+                    <p class="mt-3">
+                        Verificando punto...
+                    </p>
+                </div>
+
+                <!-- Información del punto -->
                 <div id="resultado" class="d-none">
 
                     <div class="alert alert-success">
 
-                        <h4>✅ Punto identificado</h4>
+                        <h5>✅ Punto identificado</h5>
 
                         <hr>
 
                         <p class="mb-1">
+                            <strong>Punto:</strong>
+                            <span id="nombrePunto"></span>
+                        </p>
+
+                        <p class="mb-0">
                             <strong>Código:</strong>
                             <span id="codigoPunto"></span>
                         </p>
 
-                        <p class="mb-0">
-                            <strong>Lugar:</strong>
-                            <span id="nombrePunto"></span>
-                        </p>
-
                     </div>
 
-                    <button class="btn btn-primary w-100" onclick="continuar()">
+                    <hr>
+
+                    <label for="codigoAgente" class="form-label">
+                        👮 Código del agente
+                    </label>
+
+                    <input type="text" id="codigoAgente" class="form-control form-control-lg text-center"
+                        placeholder="Ejemplo: 001" autocomplete="off">
+
+                    <div id="mensaje" class="alert d-none mt-3"></div>
+
+                    <button id="btnContinuar" class="btn btn-primary btn-lg w-100 mt-3">
                         CONTINUAR →
                     </button>
 
                 </div>
 
+                <!-- Error -->
                 <div id="error" class="d-none">
 
                     <div class="alert alert-danger">
 
-                        <h4>❌ Error</h4>
+                        <h5>❌ Error</h5>
 
-                        <p id="mensajeError"></p>
+                        <p id="mensajeError" class="mb-0"></p>
 
                     </div>
 

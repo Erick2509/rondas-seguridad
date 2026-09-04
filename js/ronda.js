@@ -6,19 +6,48 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 
-const parametros = new URLSearchParams(window.location.search);
+const parametros =
+    new URLSearchParams(window.location.search);
 
-const codigoPunto = parametros.get("punto");
+const codigoPunto =
+    parametros.get("punto");
 
 
-const cargando = document.getElementById("cargando");
-const resultado = document.getElementById("resultado");
-const error = document.getElementById("error");
+const cargando =
+    document.getElementById("cargando");
 
-const codigoElemento = document.getElementById("codigoPunto");
-const nombreElemento = document.getElementById("nombrePunto");
-const mensajeError = document.getElementById("mensajeError");
+const resultado =
+    document.getElementById("resultado");
 
+const error =
+    document.getElementById("error");
+
+const nombreElemento =
+    document.getElementById("nombrePunto");
+
+const codigoElemento =
+    document.getElementById("codigoPunto");
+
+const mensajeError =
+    document.getElementById("mensajeError");
+
+const codigoAgente =
+    document.getElementById("codigoAgente");
+
+const mensaje =
+    document.getElementById("mensaje");
+
+const btnContinuar =
+    document.getElementById("btnContinuar");
+
+
+let puntoActual = null;
+let agenteActual = null;
+
+
+// ========================================
+// 1. CARGAR PUNTO
+// ========================================
 
 async function cargarPunto() {
 
@@ -33,13 +62,11 @@ async function cargarPunto() {
 
     try {
 
-        const referencia = doc(
-            db,
-            "puntos",
-            codigoPunto
-        );
+        const referencia =
+            doc(db, "puntos", codigoPunto);
 
-        const documento = await getDoc(referencia);
+        const documento =
+            await getDoc(referencia);
 
 
         if (!documento.exists()) {
@@ -52,7 +79,8 @@ async function cargarPunto() {
         }
 
 
-        const punto = documento.data();
+        const punto =
+            documento.data();
 
 
         if (punto.activo !== true) {
@@ -65,11 +93,18 @@ async function cargarPunto() {
         }
 
 
-        codigoElemento.textContent =
-            punto.codigo;
+        puntoActual = {
+            id: codigoPunto,
+            codigo: punto.codigo,
+            nombre: punto.nombre
+        };
+
 
         nombreElemento.textContent =
             punto.nombre;
+
+        codigoElemento.textContent =
+            punto.codigo;
 
 
         cargando.classList.add("d-none");
@@ -77,46 +112,185 @@ async function cargarPunto() {
         resultado.classList.remove("d-none");
 
 
-        // Guardamos temporalmente el punto
+    } catch (errorFirebase) {
+
+        console.error(
+            "ERROR FIREBASE:",
+            errorFirebase
+        );
+
+        mostrarError(
+            "Error: " +
+            errorFirebase.code +
+            " - " +
+            errorFirebase.message
+        );
+    }
+}
+
+
+// ========================================
+// 2. VALIDAR AGENTE
+// ========================================
+
+async function validarAgente() {
+
+    const codigo =
+        codigoAgente.value.trim();
+
+
+    if (!codigo) {
+
+        mostrarMensaje(
+            "warning",
+            "Ingresa el código del agente."
+        );
+
+        return;
+    }
+
+
+    btnContinuar.disabled = true;
+
+    btnContinuar.textContent =
+        "VERIFICANDO...";
+
+
+    try {
+
+        const referencia =
+            doc(db, "agentes", codigo);
+
+        const documento =
+            await getDoc(referencia);
+
+
+        if (!documento.exists()) {
+
+            mostrarMensaje(
+                "danger",
+                "❌ Código de agente no válido."
+            );
+
+            return;
+        }
+
+
+        const agente =
+            documento.data();
+
+
+        if (agente.activo !== true) {
+
+            mostrarMensaje(
+                "danger",
+                "❌ Este agente está desactivado."
+            );
+
+            return;
+        }
+
+
+        agenteActual = {
+            id: codigo,
+            codigo: agente.codigo,
+            nombre: agente.nombre
+        };
+
+
+        // Guardamos los datos temporalmente
         sessionStorage.setItem(
-            "puntoActual",
+            "rondaActual",
             JSON.stringify({
-                id: codigoPunto,
-                codigo: punto.codigo,
-                nombre: punto.nombre
+                punto: puntoActual,
+                agente: agenteActual
             })
         );
 
 
-    } catch (errorFirebase) {
-
-        console.error(errorFirebase);
-
-        mostrarError(
-            "No se pudo conectar con Firebase."
+        mostrarMensaje(
+            "success",
+            "✅ Agente identificado: " +
+            agente.nombre
         );
 
-    }
 
+        btnContinuar.textContent =
+            "CONTINUAR →";
+
+
+        // Esperamos un momento
+        // antes de continuar
+
+        setTimeout(() => {
+
+            window.location.href =
+                "camara.html";
+
+        }, 800);
+
+
+    } catch (errorFirebase) {
+
+        console.error(
+            "ERROR VALIDANDO AGENTE:",
+            errorFirebase
+        );
+
+        mostrarMensaje(
+            "danger",
+            "Error al verificar el agente."
+        );
+
+    } finally {
+
+        btnContinuar.disabled = false;
+
+    }
 }
 
 
-function mostrarError(mensaje) {
+// ========================================
+// 3. MENSAJES
+// ========================================
+
+function mostrarMensaje(tipo, texto) {
+
+    mensaje.className =
+        "alert alert-" + tipo + " mt-3";
+
+    mensaje.textContent =
+        texto;
+
+    mensaje.classList.remove("d-none");
+}
+
+
+function mostrarError(texto) {
 
     cargando.classList.add("d-none");
 
+    resultado.classList.add("d-none");
+
     error.classList.remove("d-none");
 
-    mensajeError.textContent = mensaje;
-
+    mensajeError.textContent =
+        texto;
 }
 
 
-window.continuar = function () {
+// ========================================
+// 4. BOTÓN
+// ========================================
 
-    window.location.href = "index.html";
+btnContinuar.addEventListener(
+    "click",
+    validarAgente
+);
 
-};
 
+// ========================================
+// INICIAR
+// ========================================
 
 cargarPunto();
