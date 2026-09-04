@@ -45,13 +45,31 @@ let ubicacion = null;
 let imagenFinal = null;
 
 let rondaRegistrada = false;
-
-
 // ========================================
-// CONFIGURACIÓN GPS
+// GPS EN TIEMPO REAL
 // ========================================
 
-const PRECISION_MAXIMA_METROS = 50;
+let gpsWatchId = null;
+
+let muestrasGPS = [];
+
+let lecturasCorrectas = 0;
+
+let gpsValidado = false;
+
+
+// Cantidad de lecturas usadas para estabilizar GPS
+const MAX_MUESTRAS_GPS = 6;
+
+
+// Para un radio de 5 metros necesitamos
+// una señal GPS razonablemente buena.
+const PRECISION_MAXIMA_METROS = 8;
+
+
+// Debe estar dentro del radio varias veces
+// antes de habilitar la cámara.
+const LECTURAS_PARA_CONFIRMAR = 3;
 
 
 // ========================================
@@ -279,11 +297,91 @@ function cargarDatos() {
 // 2. OBTENER GPS
 // ========================================
 
+function promedioPonderadoGPS() {
+
+    if (muestrasGPS.length === 0) {
+        return null;
+    }
+
+
+    let sumaPesos = 0;
+
+    let latitud = 0;
+
+    let longitud = 0;
+
+
+    muestrasGPS.forEach(muestra => {
+
+        // Las lecturas más precisas pesan más.
+        const precision =
+            Math.max(
+                muestra.precision,
+                1
+            );
+
+
+        const peso =
+            1 /
+            (precision * precision);
+
+
+        latitud +=
+            muestra.latitud *
+            peso;
+
+
+        longitud +=
+            muestra.longitud *
+            peso;
+
+
+        sumaPesos +=
+            peso;
+
+    });
+
+
+    return {
+
+        latitud:
+            latitud /
+            sumaPesos,
+
+        longitud:
+            longitud /
+            sumaPesos
+
+    };
+}
+
+
+function bloquearRonda() {
+
+    gpsValidado =
+        false;
+
+
+    seccionFoto.classList.add(
+        "d-none"
+    );
+}
+
+
+function habilitarRonda() {
+
+    gpsValidado =
+        true;
+
+
+    seccionFoto.classList.remove(
+        "d-none"
+    );
+}
+
 function obtenerUbicacion() {
 
-    if (
-        !navigator.geolocation
-    ) {
+    if (!navigator.geolocation) {
 
         mostrarError(
             "Este navegador no permite obtener ubicación."
@@ -293,65 +391,339 @@ function obtenerUbicacion() {
     }
 
 
-    navigator.geolocation.getCurrentPosition(
-
-        posicion => {
-
-            const latitud =
-                posicion.coords.latitude;
-
-
-            const longitud =
-                posicion.coords.longitude;
+    gps.innerHTML = `
+        📡 <strong>Buscando GPS...</strong>
+        <br>
+        Esperando una señal precisa.
+    `;
 
 
-            const precision =
-                posicion.coords.accuracy;
+    gpsWatchId =
+        navigator.geolocation.watchPosition(
+
+            posicion => {
+
+                const latitud =
+                    posicion.coords.latitude;
 
 
-            const validacion =
-                validarCercania(
+                const longitud =
+                    posicion.coords.longitude;
 
-                    latitud,
 
-                    longitud,
+                const precision =
+                    posicion.coords.accuracy;
 
-                    precision
 
+                // --------------------------------
+                // DESCARTAR GPS MUY IMPRECISO
+                // --------------------------------
+
+                if (
+                    precision >
+                    PRECISION_MAXIMA_METROS
+                ) {
+
+                    lecturasCorrectas =
+                        0;
+
+
+                    muestrasGPS = [];
+
+
+                    bloquearRonda();
+
+
+                    gps.className =
+                        "alert alert-warning";
+
+
+                    gps.innerHTML = `
+
+                        📡 <strong>GPS en tiempo real</strong>
+
+                        <br>
+
+                        ⚠️ Esperando mejor precisión...
+
+                        <br>
+
+                        Precisión actual:
+                        ±${Math.round(precision)} m
+
+                        <br>
+
+                        Necesitamos:
+                        ±${PRECISION_MAXIMA_METROS} m o mejor
+
+                    `;
+
+
+                    return;
+                }
+
+
+                // --------------------------------
+                // GUARDAR LECTURA
+                // --------------------------------
+
+                muestrasGPS.push({
+
+                    latitud:
+                        latitud,
+
+                    longitud:
+                        longitud,
+
+                    precision:
+                        precision
+
+                });
+
+
+                // Dejamos solamente
+                // las últimas lecturas.
+
+                if (
+                    muestrasGPS.length >
+                    MAX_MUESTRAS_GPS
+                ) {
+
+                    muestrasGPS.shift();
+
+                }
+
+
+                // --------------------------------
+                // PROMEDIO DE GPS
+                // --------------------------------
+
+                const posicionFiltrada =
+                    promedioPonderadoGPS();
+
+
+                if (!posicionFiltrada) {
+
+                    return;
+                }
+
+
+                // --------------------------------
+                // DISTANCIA REAL AL PUNTO
+                // --------------------------------
+
+                const latitudPunto =
+                    Number(
+                        datosRonda.punto.latitud
+                    );
+
+
+                const longitudPunto =
+                    Number(
+                        datosRonda.punto.longitud
+                    );
+
+
+                const radioMetros =
+                    Number(
+                        datosRonda.punto.radioMetros
+                        || 5
+                    );
+
+
+                const distancia =
+                    calcularDistanciaMetros(
+
+                        posicionFiltrada.latitud,
+
+                        posicionFiltrada.longitud,
+
+                        latitudPunto,
+
+                        longitudPunto
+
+                    );
+
+
+                ubicacion = {
+
+                    latitud:
+                        posicionFiltrada.latitud,
+
+                    longitud:
+                        posicionFiltrada.longitud,
+
+                    precision:
+                        precision,
+
+                    distanciaPunto:
+                        distancia,
+
+                    radioMetros:
+                        radioMetros,
+
+                    dentroDelRadio:
+                        false
+
+                };
+
+
+                // --------------------------------
+                // VERIFICAR RADIO
+                // --------------------------------
+
+                if (
+                    distancia <=
+                    radioMetros
+                ) {
+
+                    lecturasCorrectas++;
+
+
+                } else {
+
+                    lecturasCorrectas =
+                        0;
+
+                }
+
+
+                // --------------------------------
+                // CONFIRMAR POSICIÓN
+                // --------------------------------
+
+                if (
+                    lecturasCorrectas >=
+                    LECTURAS_PARA_CONFIRMAR
+                ) {
+
+                    gpsValidado =
+                        true;
+
+
+                    ubicacion.dentroDelRadio =
+                        true;
+
+
+                    habilitarRonda();
+
+
+                    gps.className =
+                        "alert alert-success";
+
+
+                    gps.innerHTML = `
+
+                        ✅ <strong>GPS VERIFICADO</strong>
+
+                        <br>
+
+                        📍 Distancia:
+                        ${distancia.toFixed(1)} m
+
+                        <br>
+
+                        🎯 Límite:
+                        ${radioMetros} m
+
+                        <br>
+
+                        📡 Precisión GPS:
+                        ±${precision.toFixed(1)} m
+
+                        <br>
+
+                        🔄 Ubicación en tiempo real
+
+                    `;
+
+
+                } else {
+
+                    bloquearRonda();
+
+
+                    gps.className =
+                        distancia <= radioMetros
+                            ? "alert alert-warning"
+                            : "alert alert-danger";
+
+
+                    if (
+                        distancia <=
+                        radioMetros
+                    ) {
+
+                        gps.innerHTML = `
+
+                            🟡 <strong>Confirmando ubicación...</strong>
+
+                            <br>
+
+                            📍 Distancia:
+                            ${distancia.toFixed(1)} m
+
+                            <br>
+
+                            🎯 Límite:
+                            ${radioMetros} m
+
+                            <br>
+
+                            📡 Precisión:
+                            ±${precision.toFixed(1)} m
+
+                            <br>
+
+                            Verificación:
+                            ${lecturasCorrectas}/${LECTURAS_PARA_CONFIRMAR}
+
+                        `;
+
+
+                    } else {
+
+                        gps.innerHTML = `
+
+                            ❌ <strong>FUERA DEL PUNTO</strong>
+
+                            <br>
+
+                            📍 Distancia:
+                            ${distancia.toFixed(1)} m
+
+                            <br>
+
+                            🎯 Debes estar a:
+                            ${radioMetros} m o menos
+
+                            <br>
+
+                            📡 Precisión:
+                            ±${precision.toFixed(1)} m
+
+                            <br>
+
+                            🔄 GPS actualizándose en tiempo real
+
+                        `;
+
+                    }
+
+                }
+
+            },
+
+
+            errorGPS => {
+
+                console.error(
+                    errorGPS
                 );
 
 
-            ubicacion = {
+                bloquearRonda();
 
-                latitud:
-                    latitud,
-
-                longitud:
-                    longitud,
-
-                precision:
-                    precision,
-
-                distanciaPunto:
-                    validacion.distancia
-                    ?? null,
-
-                radioMetros:
-                    validacion.radioMetros
-                    ??
-                    datosRonda.punto.radioMetros
-                    ??
-                    30,
-
-                dentroDelRadio:
-                    validacion.valido
-
-            };
-
-
-            if (
-                !validacion.valido
-            ) {
 
                 gps.className =
                     "alert alert-danger";
@@ -359,101 +731,34 @@ function obtenerUbicacion() {
 
                 gps.innerHTML = `
 
-                    ❌ <strong>Ubicación no válida</strong>
+                    ❌ No se pudo obtener tu ubicación.
 
                     <br>
 
-                    ${validacion.motivo}
+                    Verifica que el GPS esté activado
 
-                    <br>
-
-                    Precisión:
-                    ±${Math.round(precision)} metros
+                    y que hayas permitido
+                    el acceso a ubicación.
 
                 `;
 
-
-                seccionFoto.classList.add(
-                    "d-none"
-                );
+            },
 
 
-                return;
+            {
+
+                enableHighAccuracy:
+                    true,
+
+                maximumAge:
+                    0,
+
+                timeout:
+                    10000
+
             }
 
-
-            gps.className =
-                "alert alert-success";
-
-
-            gps.innerHTML = `
-
-                ✅ <strong>GPS verificado</strong>
-
-                <br>
-
-                Distancia al punto:
-                ${Math.round(validacion.distancia)} metros
-
-                <br>
-
-                Radio permitido:
-                ${validacion.radioMetros} metros
-
-                <br>
-
-                Precisión:
-                ±${Math.round(precision)} metros
-
-            `;
-
-
-            seccionFoto.classList.remove(
-                "d-none"
-            );
-
-        },
-
-
-        errorGPS => {
-
-            console.error(
-                errorGPS
-            );
-
-
-            gps.className =
-                "alert alert-danger";
-
-
-            gps.innerHTML = `
-
-                ❌ No se pudo obtener tu ubicación.
-
-                <br>
-
-                Debes permitir el acceso a la ubicación
-                para continuar.
-
-            `;
-
-        },
-
-
-        {
-
-            enableHighAccuracy:
-                true,
-
-            timeout:
-                15000,
-
-            maximumAge:
-                0
-
-        }
-
-    );
+        );
 }
 
 
@@ -741,17 +1046,16 @@ async function registrarRonda() {
 
 
     if (
-        ubicacion.dentroDelRadio
-        !== true
+        ubicacion.dentroDelRadio !== true ||
+        gpsValidado !== true
     ) {
 
         mostrarError(
-            "No puedes registrar la ronda porque estás fuera del radio permitido."
+            "No puedes registrar la ronda. El GPS todavía no ha confirmado que estés dentro de los 5 metros."
         );
 
         return;
     }
-
 
     if (!imagenFinal) {
 
@@ -1106,6 +1410,22 @@ function mostrarError(
     );
 
 }
+window.addEventListener(
+    "pagehide",
+    () => {
+
+        if (
+            gpsWatchId !== null
+        ) {
+
+            navigator.geolocation.clearWatch(
+                gpsWatchId
+            );
+
+        }
+
+    }
+);
 
 
 // ========================================
