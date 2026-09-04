@@ -9,9 +9,33 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 
-// ========================================
-// ELEMENTOS
-// ========================================
+// ======================================================
+// ELEMENTOS DEL MENÚ
+// ======================================================
+
+const menuInicio =
+    document.getElementById("menuInicio");
+
+const menuRondas =
+    document.getElementById("menuRondas");
+
+const menuQR =
+    document.getElementById("menuQR");
+
+
+const seccionInicio =
+    document.getElementById("seccionInicio");
+
+const seccionRondas =
+    document.getElementById("seccionRondas");
+
+const seccionQR =
+    document.getElementById("seccionQR");
+
+
+// ======================================================
+// ELEMENTOS RONDAS
+// ======================================================
 
 const listaRondas =
     document.getElementById("listaRondas");
@@ -41,26 +65,132 @@ const btnActualizar =
     document.getElementById("btnActualizar");
 
 
-// ========================================
-// DATOS
-// ========================================
+// ======================================================
+// ELEMENTOS QR
+// ======================================================
+
+const qrCodigo =
+    document.getElementById("qrCodigo");
+
+const qrNombre =
+    document.getElementById("qrNombre");
+
+const btnGenerarQR =
+    document.getElementById("btnGenerarQR");
+
+const qrResultado =
+    document.getElementById("qrResultado");
+
+const qrError =
+    document.getElementById("qrError");
+
+const codigoQR =
+    document.getElementById("codigoQR");
+
+const qrNombreVisual =
+    document.getElementById("qrNombreVisual");
+
+const qrCodigoVisual =
+    document.getElementById("qrCodigoVisual");
+
+const qrUrl =
+    document.getElementById("qrUrl");
+
+const btnDescargarQR =
+    document.getElementById("btnDescargarQR");
+
+const btnImprimirQR =
+    document.getElementById("btnImprimirQR");
+
+
+// ======================================================
+// VARIABLES
+// ======================================================
 
 let rondas = [];
 
+let urlQRActual = "";
 
-// ========================================
+
+// ======================================================
+// CAMBIAR SECCIÓN
+// ======================================================
+
+function mostrarSeccion(nombre) {
+
+    seccionInicio.classList.remove("activa");
+    seccionRondas.classList.remove("activa");
+    seccionQR.classList.remove("activa");
+
+    menuInicio.classList.remove("activo");
+    menuRondas.classList.remove("activo");
+    menuQR.classList.remove("activo");
+
+
+    if (nombre === "inicio") {
+
+        seccionInicio.classList.add("activa");
+        menuInicio.classList.add("activo");
+    }
+
+
+    if (nombre === "rondas") {
+
+        seccionRondas.classList.add("activa");
+        menuRondas.classList.add("activo");
+    }
+
+
+    if (nombre === "qr") {
+
+        seccionQR.classList.add("activa");
+        menuQR.classList.add("activo");
+    }
+}
+
+
+// ======================================================
+// MENÚ
+// ======================================================
+
+menuInicio.addEventListener(
+    "click",
+    function () {
+
+        mostrarSeccion("inicio");
+    }
+);
+
+
+menuRondas.addEventListener(
+    "click",
+    function () {
+
+        mostrarSeccion("rondas");
+    }
+);
+
+
+menuQR.addEventListener(
+    "click",
+    function () {
+
+        mostrarSeccion("qr");
+    }
+);
+
+
+// ======================================================
 // CARGAR RONDAS
-// ========================================
+// ======================================================
 
 async function cargarRondas() {
 
     ocultarError();
 
-    cargando.style.display =
-        "block";
+    cargando.style.display = "block";
 
-    listaRondas.innerHTML =
-        "";
+    listaRondas.innerHTML = "";
 
 
     try {
@@ -101,8 +231,7 @@ async function cargarRondas() {
 
                 rondas.push({
 
-                    id:
-                        documento.id,
+                    id: documento.id,
 
                     ...datos
 
@@ -111,15 +240,12 @@ async function cargarRondas() {
         );
 
 
-        cargando.style.display =
-            "none";
+        cargando.style.display = "none";
 
 
         actualizarResumen();
 
-        mostrarRondas(
-            rondas
-        );
+        mostrarRondas(rondas);
 
 
     } catch (e) {
@@ -130,8 +256,7 @@ async function cargarRondas() {
         );
 
 
-        cargando.style.display =
-            "none";
+        cargando.style.display = "none";
 
 
         mostrarError(
@@ -142,9 +267,9 @@ async function cargarRondas() {
 }
 
 
-// ========================================
+// ======================================================
 // RESUMEN
-// ========================================
+// ======================================================
 
 function actualizarResumen() {
 
@@ -160,8 +285,7 @@ function actualizarResumen() {
         new Set();
 
 
-    let contadorHoy =
-        0;
+    let contadorHoy = 0;
 
 
     const hoy =
@@ -210,9 +334,9 @@ function actualizarResumen() {
 }
 
 
-// ========================================
-// FECHA LOCAL
-// ========================================
+// ======================================================
+// FECHA DE HOY
+// ======================================================
 
 function fechaLocalActual() {
 
@@ -223,31 +347,42 @@ function fechaLocalActual() {
     const dia =
         String(
             fecha.getDate()
-        ).padStart(2, "0");
+        ).padStart(
+            2,
+            "0"
+        );
 
 
     const mes =
         String(
             fecha.getMonth() + 1
-        ).padStart(2, "0");
+        ).padStart(
+            2,
+            "0"
+        );
 
 
     const anio =
         fecha.getFullYear();
 
 
-    return `${dia}/${mes}/${anio}`;
+    return (
+        dia +
+        "/" +
+        mes +
+        "/" +
+        anio
+    );
 }
 
 
-// ========================================
+// ======================================================
 // MOSTRAR RONDAS
-// ========================================
+// ======================================================
 
 function mostrarRondas(datos) {
 
-    listaRondas.innerHTML =
-        "";
+    listaRondas.innerHTML = "";
 
 
     if (
@@ -288,9 +423,9 @@ function mostrarRondas(datos) {
 }
 
 
-// ========================================
-// CREAR TARJETA
-// ========================================
+// ======================================================
+// CREAR TARJETA DE RONDA
+// ======================================================
 
 function crearTarjetaRonda(ronda) {
 
@@ -304,9 +439,9 @@ function crearTarjetaRonda(ronda) {
         "ronda";
 
 
-    // ---------------------------
-    // PARTE SUPERIOR
-    // ---------------------------
+    // --------------------------
+    // SUPERIOR
+    // --------------------------
 
     const superior =
         document.createElement(
@@ -364,9 +499,9 @@ function crearTarjetaRonda(ronda) {
     );
 
 
-    // ---------------------------
-    // DETALLES
-    // ---------------------------
+    // --------------------------
+    // DETALLE
+    // --------------------------
 
     const detalle =
         document.createElement(
@@ -381,8 +516,7 @@ function crearTarjetaRonda(ronda) {
     agregarLinea(
         detalle,
         "📍 Punto: ",
-        ronda.puntoNombre ||
-        "-"
+        ronda.puntoNombre || "-"
     );
 
 
@@ -398,16 +532,14 @@ function crearTarjetaRonda(ronda) {
     agregarLinea(
         detalle,
         "📅 Fecha: ",
-        ronda.fecha ||
-        "-"
+        ronda.fecha || "-"
     );
 
 
     agregarLinea(
         detalle,
         "🕐 Hora: ",
-        ronda.hora ||
-        "-"
+        ronda.hora || "-"
     );
 
 
@@ -435,9 +567,9 @@ function crearTarjetaRonda(ronda) {
 }
 
 
-// ========================================
-// AGREGAR LÍNEA SEGURA
-// ========================================
+// ======================================================
+// AGREGAR LÍNEA
+// ======================================================
 
 function agregarLinea(
     contenedor,
@@ -483,9 +615,9 @@ function agregarLinea(
 }
 
 
-// ========================================
-// BUSCADOR
-// ========================================
+// ======================================================
+// BUSCAR
+// ======================================================
 
 function filtrarRondas() {
 
@@ -520,8 +652,9 @@ function filtrarRondas() {
                     ronda.direccion
 
                 ]
-                .join(" ")
-                .toLowerCase();
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
 
 
                 return contenido.includes(
@@ -537,9 +670,9 @@ function filtrarRondas() {
 }
 
 
-// ========================================
-// ERROR
-// ========================================
+// ======================================================
+// ERROR DEL PANEL
+// ======================================================
 
 function mostrarError(texto) {
 
@@ -559,9 +692,357 @@ function ocultarError() {
 }
 
 
-// ========================================
-// EVENTOS
-// ========================================
+// ======================================================
+// GENERAR QR
+// ======================================================
+
+function generarQRAdmin() {
+
+    ocultarErrorQR();
+
+
+    const codigo =
+        qrCodigo.value
+            .trim()
+            .toUpperCase();
+
+
+    const nombre =
+        qrNombre.value
+            .trim();
+
+
+    if (!codigo) {
+
+        mostrarErrorQR(
+            "Ingresa el código del punto."
+        );
+
+        qrCodigo.focus();
+
+        return;
+    }
+
+
+    if (!nombre) {
+
+        mostrarErrorQR(
+            "Ingresa el nombre del punto."
+        );
+
+        qrNombre.focus();
+
+        return;
+    }
+
+
+    if (
+        typeof window.QRCode ===
+        "undefined"
+    ) {
+
+        mostrarErrorQR(
+            "No se pudo cargar el generador de QR."
+        );
+
+        return;
+    }
+
+
+    // URL QUE ABRIRÁ EL QR
+
+    urlQRActual =
+        window.location.origin +
+        "/ronda.html?punto=" +
+        encodeURIComponent(
+            codigo
+        );
+
+
+    // LIMPIAR QR ANTERIOR
+
+    codigoQR.innerHTML = "";
+
+
+    // CREAR QR
+
+    new window.QRCode(
+        codigoQR,
+        {
+            text:
+                urlQRActual,
+
+            width:
+                260,
+
+            height:
+                260,
+
+            correctLevel:
+                window.QRCode
+                    .CorrectLevel
+                    .H
+        }
+    );
+
+
+    // INFORMACIÓN VISUAL
+
+    qrNombreVisual.textContent =
+        nombre;
+
+
+    qrCodigoVisual.textContent =
+        "Código: " +
+        codigo;
+
+
+    qrUrl.textContent =
+        urlQRActual;
+
+
+    qrResultado.style.display =
+        "block";
+}
+
+
+// ======================================================
+// ERROR QR
+// ======================================================
+
+function mostrarErrorQR(texto) {
+
+    qrError.textContent =
+        texto;
+
+
+    qrError.style.display =
+        "block";
+}
+
+
+function ocultarErrorQR() {
+
+    qrError.style.display =
+        "none";
+}
+
+
+// ======================================================
+// DESCARGAR QR
+// ======================================================
+
+function descargarQRAdmin() {
+
+    ocultarErrorQR();
+
+
+    const canvas =
+        codigoQR.querySelector(
+            "canvas"
+        );
+
+
+    const imagen =
+        codigoQR.querySelector(
+            "img"
+        );
+
+
+    let dataURL = "";
+
+
+    if (canvas) {
+
+        dataURL =
+            canvas.toDataURL(
+                "image/png"
+            );
+
+    } else if (imagen) {
+
+        dataURL =
+            imagen.src;
+
+    } else {
+
+        mostrarErrorQR(
+            "Primero genera un código QR."
+        );
+
+        return;
+    }
+
+
+    const codigo =
+        qrCodigo.value
+            .trim()
+            .toUpperCase();
+
+
+    const enlace =
+        document.createElement(
+            "a"
+        );
+
+
+    enlace.href =
+        dataURL;
+
+
+    enlace.download =
+        "QR_" +
+        codigo +
+        ".png";
+
+
+    document.body.appendChild(
+        enlace
+    );
+
+
+    enlace.click();
+
+
+    enlace.remove();
+}
+
+
+// ======================================================
+// IMPRIMIR QR
+// ======================================================
+
+function imprimirQRAdmin() {
+
+    ocultarErrorQR();
+
+
+    if (!urlQRActual) {
+
+        mostrarErrorQR(
+            "Primero genera un código QR."
+        );
+
+        return;
+    }
+
+
+    const area =
+        document.getElementById(
+            "areaQR"
+        );
+
+
+    const contenido =
+        area.outerHTML;
+
+
+    const ventana =
+        window.open(
+            "",
+            "_blank"
+        );
+
+
+    if (!ventana) {
+
+        mostrarErrorQR(
+            "El navegador bloqueó la ventana de impresión."
+        );
+
+        return;
+    }
+
+
+    ventana.document.write(
+        `
+        <!DOCTYPE html>
+
+        <html lang="es">
+
+        <head>
+
+            <meta charset="UTF-8">
+
+            <title>
+                QR Punto de Control
+            </title>
+
+            <style>
+
+                body {
+                    margin: 0;
+                    padding: 40px;
+                    font-family: Arial, sans-serif;
+                    text-align: center;
+                    background: white;
+                }
+
+                .area-qr {
+                    display: inline-block;
+                    border: 2px solid #111;
+                    border-radius: 12px;
+                    padding: 25px;
+                    background: white;
+                }
+
+                .qr-titulo {
+                    font-size: 21px;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                }
+
+                .qr-nombre {
+                    font-size: 19px;
+                    font-weight: bold;
+                    margin-bottom: 5px;
+                }
+
+                .qr-codigo {
+                    margin-bottom: 15px;
+                }
+
+                .qr-url {
+                    max-width: 300px;
+                    margin: 15px auto 0;
+                    font-size: 11px;
+                    word-break: break-all;
+                }
+
+            </style>
+
+        </head>
+
+        <body>
+
+            ${contenido}
+
+        </body>
+
+        </html>
+        `
+    );
+
+
+    ventana.document.close();
+
+
+    setTimeout(
+        function () {
+
+            ventana.focus();
+
+            ventana.print();
+
+        },
+        500
+    );
+}
+
+
+// ======================================================
+// EVENTOS DE RONDAS
+// ======================================================
 
 buscador.addEventListener(
     "input",
@@ -575,8 +1056,66 @@ btnActualizar.addEventListener(
 );
 
 
-// ========================================
-// INICIAR
-// ========================================
+// ======================================================
+// EVENTOS QR
+// ======================================================
+
+btnGenerarQR.addEventListener(
+    "click",
+    generarQRAdmin
+);
+
+
+btnDescargarQR.addEventListener(
+    "click",
+    descargarQRAdmin
+);
+
+
+btnImprimirQR.addEventListener(
+    "click",
+    imprimirQRAdmin
+);
+
+
+// ======================================================
+// ENTER PARA GENERAR QR
+// ======================================================
+
+qrCodigo.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            event.preventDefault();
+
+            generarQRAdmin();
+        }
+    }
+);
+
+
+qrNombre.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            event.preventDefault();
+
+            generarQRAdmin();
+        }
+    }
+);
+
+
+// ======================================================
+// INICIAR PANEL
+// ======================================================
 
 cargarRondas();

@@ -10,7 +10,7 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Panel de Rondas</title>
+    <title>Panel de Administración</title>
 
     <link rel="icon" href="data:,">
 
@@ -22,26 +22,41 @@
 
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             background: #f4f6f8;
             color: #1f2937;
         }
 
+
+        /* ===============================
+           CABECERA
+        =============================== */
+
         header {
-            background: white;
+            background: #ffffff;
+            border-bottom: 1px solid #dddddd;
             padding: 20px;
-            border-bottom: 1px solid #ddd;
+        }
+
+        .header-contenido {
+            max-width: 1200px;
+            margin: auto;
         }
 
         header h1 {
             margin: 0;
-            font-size: 26px;
+            font-size: 27px;
         }
 
         header p {
-            margin: 5px 0 0;
-            color: #666;
+            margin: 6px 0 0;
+            color: #6b7280;
         }
+
+
+        /* ===============================
+           CONTENEDOR
+        =============================== */
 
         .contenedor {
             max-width: 1200px;
@@ -49,10 +64,60 @@
             padding: 20px;
         }
 
+
+        /* ===============================
+           MENÚ
+        =============================== */
+
+        .menu {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+
+        .menu button {
+            border: 0;
+            background: white;
+            padding: 12px 18px;
+            border-radius: 9px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            box-shadow: 0 2px 7px rgba(0,0,0,0.07);
+        }
+
+        .menu button:hover {
+            background: #e9eef7;
+        }
+
+        .menu button.activo {
+            background: #0d6efd;
+            color: white;
+        }
+
+
+        /* ===============================
+           SECCIONES
+        =============================== */
+
+        .seccion {
+            display: none;
+        }
+
+        .seccion.activa {
+            display: block;
+        }
+
+
+        /* ===============================
+           RESUMEN
+        =============================== */
+
         .resumen {
             display: grid;
             grid-template-columns:
-                repeat(auto-fit, minmax(180px, 1fr));
+                repeat(auto-fit, minmax(190px, 1fr));
             gap: 15px;
             margin-bottom: 25px;
         }
@@ -61,54 +126,68 @@
             background: white;
             border-radius: 12px;
             padding: 20px;
-            box-shadow:
-                0 2px 8px rgba(0,0,0,0.08);
-        }
-
-        .numero {
-            font-size: 32px;
-            font-weight: bold;
-            margin-top: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
         .etiqueta {
-            color: #666;
+            color: #6b7280;
             font-size: 14px;
         }
+
+        .numero {
+            font-size: 34px;
+            font-weight: bold;
+            margin-top: 7px;
+        }
+
+
+        /* ===============================
+           BUSCADOR
+        =============================== */
 
         .barra {
             background: white;
             padding: 15px;
             border-radius: 12px;
             margin-bottom: 20px;
-            box-shadow:
-                0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
         .barra input {
             width: 100%;
             padding: 12px;
-            border: 1px solid #ccc;
+            border: 1px solid #cccccc;
             border-radius: 8px;
             font-size: 16px;
         }
 
-        .titulo-rondas {
-            margin-bottom: 15px;
+        .btn-actualizar {
+            margin-top: 10px;
+            border: 0;
+            background: #e5e7eb;
+            padding: 11px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
         }
+
+
+        /* ===============================
+           RONDAS
+        =============================== */
 
         .ronda {
             background: white;
             padding: 18px;
             border-radius: 12px;
             margin-bottom: 12px;
-            box-shadow:
-                0 2px 8px rgba(0,0,0,0.07);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
         }
 
         .ronda-superior {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             gap: 15px;
             flex-wrap: wrap;
         }
@@ -121,66 +200,207 @@
         .estado {
             background: #d1fae5;
             color: #065f46;
-            padding: 5px 10px;
+            padding: 6px 11px;
             border-radius: 20px;
             font-size: 13px;
             font-weight: bold;
         }
 
         .detalle {
-            margin-top: 10px;
-            line-height: 1.7;
+            margin-top: 12px;
+            line-height: 1.8;
         }
 
-        .direccion {
-            color: #555;
-        }
-
-        .cargando {
+        .cargando,
+        .sin-resultados {
             background: white;
+            border-radius: 12px;
             padding: 30px;
             text-align: center;
-            border-radius: 12px;
+            color: #6b7280;
         }
 
         .error {
+            display: none;
             background: #fee2e2;
             color: #991b1b;
-            padding: 15px;
-            border-radius: 10px;
+            padding: 14px;
+            border-radius: 9px;
             margin-bottom: 20px;
-            display: none;
         }
 
-        .sin-resultados {
-            background: white;
-            padding: 30px;
-            text-align: center;
-            border-radius: 12px;
-            color: #666;
+
+        /* ===============================
+           GENERADOR QR
+        =============================== */
+
+        .qr-panel {
+            max-width: 650px;
         }
 
-        .actualizar {
-            border: 0;
-            padding: 11px 18px;
-            border-radius: 8px;
-            cursor: pointer;
+        .qr-panel h2 {
+            margin-top: 0;
+        }
+
+        .qr-panel label {
+            display: block;
             font-weight: bold;
-            margin-top: 10px;
+            margin-top: 16px;
+            margin-bottom: 7px;
         }
+
+        .qr-panel input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cccccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .btn-principal {
+            width: 100%;
+            padding: 13px;
+            margin-top: 20px;
+            border: 0;
+            border-radius: 8px;
+            background: #0d6efd;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-principal:hover {
+            background: #0b5ed7;
+        }
+
+        .qr-error {
+            display: none;
+            background: #fee2e2;
+            color: #991b1b;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+        }
+
+        .qr-resultado {
+            display: none;
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .area-qr {
+            display: inline-block;
+            background: white;
+            border: 2px solid #111111;
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .qr-titulo {
+            font-size: 21px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .qr-nombre {
+            font-size: 19px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .qr-codigo {
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        #codigoQR {
+            display: flex;
+            justify-content: center;
+        }
+
+        #codigoQR img,
+        #codigoQR canvas {
+            max-width: 100%;
+        }
+
+        .qr-url {
+            max-width: 300px;
+            margin: 15px auto 0;
+            color: #6b7280;
+            font-size: 11px;
+            word-break: break-all;
+        }
+
+        .btn-descargar {
+            width: 100%;
+            padding: 12px;
+            margin-top: 18px;
+            border: 0;
+            border-radius: 8px;
+            background: #198754;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-imprimir {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: 0;
+            border-radius: 8px;
+            background: #212529;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .nota {
+            background: #fff3cd;
+            color: #664d03;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+
+        /* ===============================
+           RESPONSIVE
+        =============================== */
 
         @media (max-width: 600px) {
-
-            header h1 {
-                font-size: 22px;
-            }
 
             .contenedor {
                 padding: 12px;
             }
 
+            header {
+                padding: 17px;
+            }
+
+            header h1 {
+                font-size: 22px;
+            }
+
+            .menu {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .menu button {
+                width: 100%;
+            }
+
             .numero {
-                font-size: 27px;
+                font-size: 28px;
+            }
+
+            .area-qr {
+                width: 100%;
+                padding: 15px;
             }
         }
 
@@ -194,13 +414,17 @@
 
 <header>
 
-    <h1>
-        🛡️ Panel de Rondas
-    </h1>
+    <div class="header-contenido">
 
-    <p>
-        Control provisional de rondas de seguridad
-    </p>
+        <h1>
+            🛡️ Panel de Administración
+        </h1>
+
+        <p>
+            Sistema de rondas de seguridad
+        </p>
+
+    </div>
 
 </header>
 
@@ -208,126 +432,338 @@
 <main class="contenedor">
 
 
-    <!-- RESUMEN -->
+    <!-- ==============================
+         MENÚ
+    =============================== -->
 
-    <section class="resumen">
-
-
-        <div class="tarjeta">
-
-            <div class="etiqueta">
-                Rondas cargadas
-            </div>
-
-            <div
-                id="totalRondas"
-                class="numero"
-            >
-                0
-            </div>
-
-        </div>
-
-
-        <div class="tarjeta">
-
-            <div class="etiqueta">
-                Rondas de hoy
-            </div>
-
-            <div
-                id="rondasHoy"
-                class="numero"
-            >
-                0
-            </div>
-
-        </div>
-
-
-        <div class="tarjeta">
-
-            <div class="etiqueta">
-                Agentes
-            </div>
-
-            <div
-                id="totalAgentes"
-                class="numero"
-            >
-                0
-            </div>
-
-        </div>
-
-
-        <div class="tarjeta">
-
-            <div class="etiqueta">
-                Puntos visitados
-            </div>
-
-            <div
-                id="totalPuntos"
-                class="numero"
-            >
-                0
-            </div>
-
-        </div>
-
-
-    </section>
-
-
-    <!-- BUSCADOR -->
-
-    <section class="barra">
-
-        <input
-            type="search"
-            id="buscador"
-            placeholder="Buscar agente, punto, código o dirección..."
-        >
+    <nav class="menu">
 
         <button
-            id="btnActualizar"
-            class="actualizar"
+            id="menuInicio"
+            class="activo"
+            type="button"
         >
-            🔄 Actualizar
+            📊 Inicio
         </button>
+
+        <button
+            id="menuRondas"
+            type="button"
+        >
+            📋 Rondas
+        </button>
+
+        <button
+            id="menuQR"
+            type="button"
+        >
+            📱 Puntos / QR
+        </button>
+
+    </nav>
+
+
+    <!-- ==============================
+         INICIO
+    =============================== -->
+
+    <section
+        id="seccionInicio"
+        class="seccion activa"
+    >
+
+        <h2>
+            Resumen
+        </h2>
+
+
+        <div class="resumen">
+
+
+            <div class="tarjeta">
+
+                <div class="etiqueta">
+                    Rondas cargadas
+                </div>
+
+                <div
+                    id="totalRondas"
+                    class="numero"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <div class="tarjeta">
+
+                <div class="etiqueta">
+                    Rondas de hoy
+                </div>
+
+                <div
+                    id="rondasHoy"
+                    class="numero"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <div class="tarjeta">
+
+                <div class="etiqueta">
+                    Agentes
+                </div>
+
+                <div
+                    id="totalAgentes"
+                    class="numero"
+                >
+                    0
+                </div>
+
+            </div>
+
+
+            <div class="tarjeta">
+
+                <div class="etiqueta">
+                    Puntos visitados
+                </div>
+
+                <div
+                    id="totalPuntos"
+                    class="numero"
+                >
+                    0
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="tarjeta">
+
+            <h3>
+                Últimas rondas
+            </h3>
+
+            <p>
+                Usa la pestaña
+                <strong>Rondas</strong>
+                para revisar el historial completo.
+            </p>
+
+        </div>
 
     </section>
 
 
-    <!-- ERROR -->
+    <!-- ==============================
+         RONDAS
+    =============================== -->
 
-    <div
-        id="error"
-        class="error"
-    ></div>
-
-
-    <!-- HISTORIAL -->
-
-    <h2 class="titulo-rondas">
-        Historial de rondas
-    </h2>
-
-
-    <div
-        id="cargando"
-        class="cargando"
+    <section
+        id="seccionRondas"
+        class="seccion"
     >
-        Cargando rondas...
-    </div>
+
+        <h2>
+            📋 Historial de rondas
+        </h2>
 
 
-    <div id="listaRondas"></div>
+        <div class="barra">
+
+            <input
+                type="search"
+                id="buscador"
+                placeholder="Buscar agente, punto, código, fecha o dirección..."
+            >
+
+            <button
+                id="btnActualizar"
+                class="btn-actualizar"
+                type="button"
+            >
+                🔄 Actualizar
+            </button>
+
+        </div>
+
+
+        <div
+            id="error"
+            class="error"
+        ></div>
+
+
+        <div
+            id="cargando"
+            class="cargando"
+        >
+            Cargando rondas...
+        </div>
+
+
+        <div id="listaRondas"></div>
+
+    </section>
+
+
+    <!-- ==============================
+         PUNTOS / QR
+    =============================== -->
+
+    <section
+        id="seccionQR"
+        class="seccion"
+    >
+
+        <div class="tarjeta qr-panel">
+
+            <h2>
+                📱 Generador de códigos QR
+            </h2>
+
+            <p>
+                Genera el código QR físico para cada
+                punto de control.
+            </p>
+
+
+            <label for="qrCodigo">
+                Código del punto
+            </label>
+
+            <input
+                id="qrCodigo"
+                type="text"
+                placeholder="Ejemplo: P01"
+                autocomplete="off"
+            >
+
+
+            <label for="qrNombre">
+                Nombre del punto
+            </label>
+
+            <input
+                id="qrNombre"
+                type="text"
+                placeholder="Ejemplo: Cochera Principal"
+                autocomplete="off"
+            >
+
+
+            <button
+                id="btnGenerarQR"
+                class="btn-principal"
+                type="button"
+            >
+                GENERAR QR
+            </button>
+
+
+            <div
+                id="qrError"
+                class="qr-error"
+            ></div>
+
+
+            <div
+                id="qrResultado"
+                class="qr-resultado"
+            >
+
+
+                <div
+                    id="areaQR"
+                    class="area-qr"
+                >
+
+                    <div class="qr-titulo">
+                        🛡️ RONDA DE SEGURIDAD
+                    </div>
+
+
+                    <div
+                        id="qrNombreVisual"
+                        class="qr-nombre"
+                    ></div>
+
+
+                    <div
+                        id="qrCodigoVisual"
+                        class="qr-codigo"
+                    ></div>
+
+
+                    <div id="codigoQR"></div>
+
+
+                    <div
+                        id="qrUrl"
+                        class="qr-url"
+                    ></div>
+
+                </div>
+
+
+                <button
+                    id="btnDescargarQR"
+                    class="btn-descargar"
+                    type="button"
+                >
+                    ⬇ DESCARGAR QR
+                </button>
+
+
+                <button
+                    id="btnImprimirQR"
+                    class="btn-imprimir"
+                    type="button"
+                >
+                    🖨 IMPRIMIR QR
+                </button>
+
+
+            </div>
+
+
+            <div class="nota">
+
+                ⚠️ El generador solamente crea el
+                código QR.
+
+                <br><br>
+
+                El punto también debe existir en
+                Firebase dentro de la colección
+                <strong>puntos</strong>.
+
+            </div>
+
+        </div>
+
+    </section>
 
 
 </main>
 
+
+<!-- LIBRERÍA PARA GENERAR QR -->
+
+<script
+    src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+></script>
+
+
+<!-- JAVASCRIPT DEL PANEL -->
 
 <script
     type="module"
