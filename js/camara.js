@@ -7,90 +7,49 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 
-// ========================================
-// ELEMENTOS HTML
-// ========================================
+// ======================================================
+// ELEMENTOS
+// ======================================================
 
-const informacion =
-    document.getElementById("informacion");
-
-const gps =
-    document.getElementById("gps");
-
-const seccionFoto =
-    document.getElementById("seccionFoto");
-
-const fotoInput =
-    document.getElementById("foto");
-
-const vistaPrevia =
-    document.getElementById("vistaPrevia");
-
-const canvas =
-    document.getElementById("canvas");
-
-const estado =
-    document.getElementById("estado");
-
-const btnRegistrar =
-    document.getElementById("btnRegistrar");
-
-const btnCompartir =
-    document.getElementById("btnCompartir");
-
-const error =
-    document.getElementById("error");
+const informacion = document.getElementById("informacion");
+const gps = document.getElementById("gps");
+const seccionFoto = document.getElementById("seccionFoto");
+const fotoInput = document.getElementById("foto");
+const vistaPrevia = document.getElementById("vistaPrevia");
+const canvas = document.getElementById("canvas");
+const estado = document.getElementById("estado");
+const btnRegistrar = document.getElementById("btnRegistrar");
+const btnCompartir = document.getElementById("btnCompartir");
+const error = document.getElementById("error");
 
 
-// ========================================
+// ======================================================
 // VARIABLES
-// ========================================
+// ======================================================
 
 let datosRonda = null;
 
-let ubicacion = null;
+let ubicacionActual = null;
+
+let direccionActual = "Ubicación no disponible";
 
 let imagenFinal = null;
 
 let rondaRegistrada = false;
 
-
-// ========================================
-// GPS EN TIEMPO REAL
-// ========================================
-
 let gpsWatchId = null;
 
-let muestrasGPS = [];
-
-let gpsValidado = false;
+let fechaFoto = null;
 
 
-// Usamos pocas muestras para responder
-// rápidamente cuando el agente se mueve.
-const MAX_MUESTRAS_GPS = 3;
-
-
-// Para autorizar la ronda necesitamos
-// una precisión GPS razonable.
-const PRECISION_PARA_VALIDAR = 8;
-
-
-// Lecturas peores de 30 metros
-// se consideran demasiado imprecisas.
-const PRECISION_DESCARTAR = 30;
-
-
-// ========================================
-// 1. RECUPERAR DATOS DE LA RONDA
-// ========================================
+// ======================================================
+// 1. CARGAR DATOS DE LA RONDA
+// ======================================================
 
 function cargarDatos() {
 
     const datos =
-        sessionStorage.getItem(
-            "rondaActual"
-        );
+        sessionStorage.getItem("rondaActual");
 
 
     if (!datos) {
@@ -103,8 +62,32 @@ function cargarDatos() {
     }
 
 
-    datosRonda =
-        JSON.parse(datos);
+    try {
+
+        datosRonda =
+            JSON.parse(datos);
+
+    } catch (e) {
+
+        mostrarError(
+            "Los datos de la ronda no son válidos."
+        );
+
+        return false;
+    }
+
+
+    if (
+        !datosRonda.agente ||
+        !datosRonda.punto
+    ) {
+
+        mostrarError(
+            "Faltan datos del agente o del punto."
+        );
+
+        return false;
+    }
 
 
     informacion.innerHTML = `
@@ -114,18 +97,18 @@ function cargarDatos() {
 
         <br>
 
-        <strong>🔢 Código:</strong>
-        ${datosRonda.agente.codigo}
-
-        <br>
-
         <strong>📍 Punto:</strong>
         ${datosRonda.punto.nombre}
 
         <br>
 
-        <strong>🔲 Código:</strong>
+        <strong>🔲 Código del punto:</strong>
         ${datosRonda.punto.codigo}
+
+        <br>
+
+        <strong>📱 QR:</strong>
+        Validado
 
     `;
 
@@ -134,196 +117,39 @@ function cargarDatos() {
 }
 
 
-// ========================================
-// 2. CONVERTIR GRADOS A RADIANES
-// ========================================
+// ======================================================
+// 2. GPS EN TIEMPO REAL
+//
+// IMPORTANTE:
+// El GPS ya NO valida ni bloquea la ronda.
+//
+// Solamente mantenemos las coordenadas más recientes
+// para obtener la dirección cuando se toma la foto.
+// ======================================================
 
-function gradosARadianes(grados) {
+function iniciarGPS() {
 
-    return grados *
-        Math.PI /
-        180;
-}
+    // La fotografía puede tomarse inmediatamente.
+    seccionFoto.classList.remove("d-none");
 
 
-// ========================================
-// 3. CALCULAR DISTANCIA GPS
-// Fórmula Haversine
-// ========================================
+    if (!navigator.geolocation) {
 
-function calcularDistanciaMetros(
-    lat1,
-    lon1,
-    lat2,
-    lon2
-) {
+        gps.className =
+            "alert alert-warning";
 
-    const R =
-        6371000;
 
+        gps.innerHTML = `
 
-    const dLat =
-        gradosARadianes(
-            lat2 - lat1
-        );
+            ⚠️ <strong>Ubicación no disponible</strong>
 
+            <br>
 
-    const dLon =
-        gradosARadianes(
-            lon2 - lon1
-        );
+            Puedes tomar la fotografía,
+            pero el dispositivo no permite obtener GPS.
 
+        `;
 
-    const a =
-
-        Math.sin(dLat / 2) *
-        Math.sin(dLat / 2)
-
-        +
-
-        Math.cos(
-            gradosARadianes(lat1)
-        )
-
-        *
-
-        Math.cos(
-            gradosARadianes(lat2)
-        )
-
-        *
-
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-
-
-    const c =
-        2 *
-        Math.atan2(
-            Math.sqrt(a),
-            Math.sqrt(1 - a)
-        );
-
-
-    return R * c;
-}
-
-
-// ========================================
-// 4. PROMEDIO PONDERADO GPS
-// ========================================
-
-function promedioPonderadoGPS() {
-
-    if (
-        muestrasGPS.length === 0
-    ) {
-
-        return null;
-    }
-
-
-    let sumaPesos = 0;
-
-    let latitud = 0;
-
-    let longitud = 0;
-
-
-    muestrasGPS.forEach(
-        muestra => {
-
-            const precision =
-                Math.max(
-                    muestra.precision,
-                    1
-                );
-
-
-            // Una lectura más precisa
-            // tiene más importancia.
-
-            const peso =
-                1 /
-                (precision * precision);
-
-
-            latitud +=
-                muestra.latitud *
-                peso;
-
-
-            longitud +=
-                muestra.longitud *
-                peso;
-
-
-            sumaPesos +=
-                peso;
-
-        }
-    );
-
-
-    return {
-
-        latitud:
-            latitud /
-            sumaPesos,
-
-        longitud:
-            longitud /
-            sumaPesos
-
-    };
-}
-
-
-// ========================================
-// 5. BLOQUEAR CÁMARA
-// ========================================
-
-function bloquearRonda() {
-
-    gpsValidado =
-        false;
-
-
-    seccionFoto.classList.add(
-        "d-none"
-    );
-}
-
-
-// ========================================
-// 6. HABILITAR CÁMARA
-// ========================================
-
-function habilitarRonda() {
-
-    gpsValidado =
-        true;
-
-
-    seccionFoto.classList.remove(
-        "d-none"
-    );
-}
-
-
-// ========================================
-// 7. GPS EN TIEMPO REAL
-// ========================================
-
-function obtenerUbicacion() {
-
-    if (
-        !navigator.geolocation
-    ) {
-
-        mostrarError(
-            "Este navegador no permite obtener ubicación."
-        );
 
         return;
     }
@@ -335,11 +161,15 @@ function obtenerUbicacion() {
 
     gps.innerHTML = `
 
-        📡 <strong>Activando GPS...</strong>
+        📍 <strong>UBICACIÓN ACTIVADA</strong>
 
         <br>
 
-        La distancia aparecerá automáticamente.
+        🔄 Obteniendo ubicación actual...
+
+        <br><br>
+
+        Puedes tomar la fotografía.
 
     `;
 
@@ -349,354 +179,34 @@ function obtenerUbicacion() {
 
             posicion => {
 
-                const latitud =
-                    posicion.coords.latitude;
-
-
-                const longitud =
-                    posicion.coords.longitude;
-
-
-                const precision =
-                    posicion.coords.accuracy;
-
-
-                // ========================================
-                // GPS DEMASIADO IMPRECISO
-                // ========================================
-
-                if (
-                    precision >
-                    PRECISION_DESCARTAR
-                ) {
-
-                    muestrasGPS = [];
-
-
-                    bloquearRonda();
-
-
-                    gps.className =
-                        "alert alert-warning";
-
-
-                    gps.innerHTML = `
-
-                        📡 <strong>GPS ACTIVO</strong>
-
-                        <br><br>
-
-                        ⚠️ Señal GPS débil
-
-                        <br>
-
-                        📡 Precisión actual:
-                        ±${precision.toFixed(1)} m
-
-                        <br><br>
-
-                        🔄 Buscando una mejor ubicación...
-
-                    `;
-
-
-                    return;
-                }
-
-
-                // ========================================
-                // GUARDAMOS LA NUEVA LECTURA
-                // ========================================
-
-                muestrasGPS.push({
+                ubicacionActual = {
 
                     latitud:
-                        latitud,
+                        posicion.coords.latitude,
 
                     longitud:
-                        longitud,
-
-                    precision:
-                        precision
-
-                });
-
-
-                // Solamente conservamos
-                // las últimas 3 posiciones.
-
-                if (
-                    muestrasGPS.length >
-                    MAX_MUESTRAS_GPS
-                ) {
-
-                    muestrasGPS.shift();
-
-                }
-
-
-                // ========================================
-                // FILTRAR POSICIÓN
-                // ========================================
-
-                const posicionFiltrada =
-                    promedioPonderadoGPS();
-
-
-                if (
-                    !posicionFiltrada
-                ) {
-
-                    return;
-                }
-
-
-                // ========================================
-                // COORDENADAS DEL PUNTO
-                // ========================================
-
-                const latitudPunto =
-                    Number(
-                        datosRonda.punto.latitud
-                    );
-
-
-                const longitudPunto =
-                    Number(
-                        datosRonda.punto.longitud
-                    );
-
-
-                const radioMetros =
-                    Number(
-                        datosRonda.punto.radioMetros
-                        || 5
-                    );
-
-
-                // ========================================
-                // COMPROBAR CONFIGURACIÓN
-                // ========================================
-
-                if (
-                    !Number.isFinite(
-                        latitudPunto
-                    )
-                    ||
-                    !Number.isFinite(
-                        longitudPunto
-                    )
-                ) {
-
-                    bloquearRonda();
-
-
-                    gps.className =
-                        "alert alert-danger";
-
-
-                    gps.innerHTML = `
-
-                        ❌ El punto no tiene
-                        coordenadas GPS configuradas.
-
-                    `;
-
-
-                    return;
-                }
-
-
-                // ========================================
-                // CALCULAR DISTANCIA
-                // ========================================
-
-                const distancia =
-                    calcularDistanciaMetros(
-
-                        posicionFiltrada.latitud,
-
-                        posicionFiltrada.longitud,
-
-                        latitudPunto,
-
-                        longitudPunto
-
-                    );
-
-
-                // ========================================
-                // GUARDAR UBICACIÓN ACTUAL
-                // ========================================
-
-                ubicacion = {
-
-                    latitud:
-                        posicionFiltrada.latitud,
-
-                    longitud:
-                        posicionFiltrada.longitud,
-
-                    precision:
-                        precision,
-
-                    distanciaPunto:
-                        distancia,
-
-                    radioMetros:
-                        radioMetros,
-
-                    dentroDelRadio:
-                        false
+                        posicion.coords.longitude
 
                 };
 
 
-                // ========================================
-                // MOSTRAR DISTANCIA INMEDIATAMENTE
-                // PERO TODAVÍA NO AUTORIZAR
-                // SI LA PRECISIÓN ES BAJA
-                // ========================================
-
-                if (
-                    precision >
-                    PRECISION_PARA_VALIDAR
-                ) {
-
-                    bloquearRonda();
+                gps.className =
+                    "alert alert-success";
 
 
-                    gps.className =
-                        "alert alert-warning";
+                gps.innerHTML = `
 
+                    📍 <strong>UBICACIÓN LISTA</strong>
 
-                    gps.innerHTML = `
+                    <br>
 
-                        📡 <strong>GPS EN TIEMPO REAL</strong>
+                    🔄 GPS actualizado en tiempo real
 
-                        <br><br>
+                    <br><br>
 
-                        📍 Distancia estimada:
-                        <strong>
-                            ${distancia.toFixed(1)} m
-                        </strong>
+                    📸 Ya puedes tomar la fotografía.
 
-                        <br>
-
-                        🎯 Límite permitido:
-                        ${radioMetros} m
-
-                        <br>
-
-                        📡 Precisión:
-                        ±${precision.toFixed(1)} m
-
-                        <br><br>
-
-                        🟡 Refinando ubicación...
-
-                    `;
-
-
-                    return;
-                }
-
-
-                // ========================================
-                // DENTRO DEL RADIO
-                // ========================================
-
-                if (
-                    distancia <=
-                    radioMetros
-                ) {
-
-                    ubicacion.dentroDelRadio =
-                        true;
-
-
-                    habilitarRonda();
-
-
-                    gps.className =
-                        "alert alert-success";
-
-
-                    gps.innerHTML = `
-
-                        ✅ <strong>GPS VERIFICADO</strong>
-
-                        <br><br>
-
-                        📍 Distancia:
-                        <strong>
-                            ${distancia.toFixed(1)} m
-                        </strong>
-
-                        <br>
-
-                        🎯 Límite permitido:
-                        ${radioMetros} m
-
-                        <br>
-
-                        📡 Precisión:
-                        ±${precision.toFixed(1)} m
-
-                        <br>
-
-                        🔄 GPS en tiempo real
-
-                    `;
-
-                }
-
-
-                // ========================================
-                // FUERA DEL RADIO
-                // ========================================
-
-                else {
-
-                    ubicacion.dentroDelRadio =
-                        false;
-
-
-                    bloquearRonda();
-
-
-                    gps.className =
-                        "alert alert-danger";
-
-
-                    gps.innerHTML = `
-
-                        ❌ <strong>FUERA DEL PUNTO</strong>
-
-                        <br><br>
-
-                        📍 Distancia:
-                        <strong>
-                            ${distancia.toFixed(1)} m
-                        </strong>
-
-                        <br>
-
-                        🎯 Debes estar a:
-                        ${radioMetros} m o menos
-
-                        <br>
-
-                        📡 Precisión:
-                        ±${precision.toFixed(1)} m
-
-                        <br>
-
-                        🔄 GPS actualizándose en tiempo real
-
-                    `;
-
-                }
+                `;
 
             },
 
@@ -704,59 +214,24 @@ function obtenerUbicacion() {
             errorGPS => {
 
                 console.error(
+                    "Error GPS:",
                     errorGPS
                 );
 
 
-                bloquearRonda();
-
-
                 gps.className =
-                    "alert alert-danger";
-
-
-                let mensajeGPS =
-                    "No se pudo obtener tu ubicación.";
-
-
-                if (
-                    errorGPS.code === 1
-                ) {
-
-                    mensajeGPS =
-                        "Debes permitir el acceso a tu ubicación.";
-
-                }
-
-
-                if (
-                    errorGPS.code === 2
-                ) {
-
-                    mensajeGPS =
-                        "El teléfono no pudo determinar tu ubicación.";
-
-                }
-
-
-                if (
-                    errorGPS.code === 3
-                ) {
-
-                    mensajeGPS =
-                        "El GPS está tardando demasiado. Mantén activada la ubicación.";
-
-                }
+                    "alert alert-warning";
 
 
                 gps.innerHTML = `
 
-                    ❌ <strong>${mensajeGPS}</strong>
+                    ⚠️ <strong>No se pudo obtener la ubicación.</strong>
 
                     <br>
 
-                    Verifica que el GPS del celular
-                    esté activado.
+                    Puedes tomar la fotografía,
+                    pero intenta activar la ubicación
+                    del celular para registrar la dirección.
 
                 `;
 
@@ -764,25 +239,191 @@ function obtenerUbicacion() {
 
 
             {
-
-                enableHighAccuracy:
-                    true,
-
-                maximumAge:
-                    0,
-
-                timeout:
-                    10000
-
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 10000
             }
 
         );
 }
 
 
-// ========================================
-// 8. SELECCIONAR FOTO
-// ========================================
+// ======================================================
+// 3. CONVERTIR COORDENADAS A DIRECCIÓN
+// ======================================================
+
+async function obtenerDireccion(
+    latitud,
+    longitud
+) {
+
+    try {
+
+        const url =
+            "https://nominatim.openstreetmap.org/reverse" +
+            "?format=jsonv2" +
+            "&addressdetails=1" +
+            "&zoom=18" +
+            "&accept-language=es" +
+            "&lat=" + encodeURIComponent(latitud) +
+            "&lon=" + encodeURIComponent(longitud);
+
+
+        const respuesta =
+            await fetch(url);
+
+
+        if (!respuesta.ok) {
+
+            throw new Error(
+                "No se pudo consultar la dirección."
+            );
+        }
+
+
+        const datos =
+            await respuesta.json();
+
+
+        const a =
+            datos.address || {};
+
+
+        // ----------------------------------------------
+        // CONSTRUIR DIRECCIÓN MÁS LIMPIA
+        // ----------------------------------------------
+
+        const calle =
+            a.road ||
+            a.pedestrian ||
+            a.residential ||
+            a.footway ||
+            a.path ||
+            "";
+
+
+        const numero =
+            a.house_number || "";
+
+
+        const zona =
+            a.neighbourhood ||
+            a.suburb ||
+            a.quarter ||
+            a.city_district ||
+            a.district ||
+            "";
+
+
+        const ciudad =
+            a.city ||
+            a.town ||
+            a.village ||
+            a.municipality ||
+            "";
+
+
+        const region =
+            a.state ||
+            a.region ||
+            "";
+
+
+        const pais =
+            a.country || "";
+
+
+        const partes = [];
+
+
+        // Calle + número
+        if (calle) {
+
+            if (numero) {
+
+                partes.push(
+                    `${calle} ${numero}`
+                );
+
+            } else {
+
+                partes.push(calle);
+
+            }
+
+        }
+
+
+        if (
+            zona &&
+            !partes.includes(zona)
+        ) {
+
+            partes.push(zona);
+        }
+
+
+        if (
+            ciudad &&
+            !partes.includes(ciudad)
+        ) {
+
+            partes.push(ciudad);
+        }
+
+
+        if (
+            region &&
+            !partes.includes(region)
+        ) {
+
+            partes.push(region);
+        }
+
+
+        if (
+            pais &&
+            !partes.includes(pais)
+        ) {
+
+            partes.push(pais);
+        }
+
+
+        // Si conseguimos una dirección limpia:
+        if (partes.length > 0) {
+
+            return partes.join(", ");
+        }
+
+
+        // Si no, usamos la dirección completa
+        // que devuelve OpenStreetMap.
+        if (datos.display_name) {
+
+            return datos.display_name;
+        }
+
+
+        return "Dirección no encontrada";
+
+
+    } catch (e) {
+
+        console.error(
+            "Error obteniendo dirección:",
+            e
+        );
+
+
+        return "Dirección no disponible";
+    }
+}
+
+
+// ======================================================
+// 4. TOMAR FOTOGRAFÍA
+// ======================================================
 
 fotoInput.addEventListener(
     "change",
@@ -790,50 +431,79 @@ fotoInput.addEventListener(
 );
 
 
-function manejarFoto(event) {
-
-    // Volvemos a comprobar el GPS
-    // justo antes de aceptar la fotografía.
-
-    if (
-        !ubicacion ||
-        ubicacion.dentroDelRadio !== true ||
-        gpsValidado !== true
-    ) {
-
-        mostrarError(
-            "La ubicación GPS ya no está dentro del área autorizada."
-        );
-
-        fotoInput.value = "";
-
-        return;
-    }
-
+async function manejarFoto(event) {
 
     const archivo =
         event.target.files[0];
 
 
     if (!archivo) {
-
         return;
     }
 
+
+    estado.className =
+        "alert alert-info mt-3";
+
+
+    estado.innerHTML = `
+
+        📍 <strong>Obteniendo dirección...</strong>
+
+        <br>
+
+        Preparando evidencia.
+
+    `;
+
+
+    // Guardamos exactamente el momento
+    // en que se tomó/seleccionó la fotografía.
+
+    fechaFoto =
+        new Date();
+
+
+    // ----------------------------------------------
+    // OBTENER DIRECCIÓN DE LA POSICIÓN MÁS RECIENTE
+    // ----------------------------------------------
+
+    if (ubicacionActual) {
+
+        direccionActual =
+            await obtenerDireccion(
+
+                ubicacionActual.latitud,
+
+                ubicacionActual.longitud
+
+            );
+
+    } else {
+
+        direccionActual =
+            "Ubicación GPS no disponible";
+
+    }
+
+
+    // ----------------------------------------------
+    // CARGAR FOTO
+    // ----------------------------------------------
 
     const lector =
         new FileReader();
 
 
     lector.onload =
-        function (e) {
+        function(e) {
 
             const imagen =
                 new Image();
 
 
             imagen.onload =
-                function () {
+                function() {
 
                     generarImagenFinal(
                         imagen
@@ -854,9 +524,87 @@ function manejarFoto(event) {
 }
 
 
-// ========================================
-// 9. GENERAR FOTO CON INFORMACIÓN
-// ========================================
+// ======================================================
+// 5. DIVIDIR TEXTO PARA EL CANVAS
+// ======================================================
+
+function escribirTextoEnLineas(
+    ctx,
+    texto,
+    x,
+    y,
+    anchoMaximo,
+    alturaLinea
+) {
+
+    const palabras =
+        texto.split(" ");
+
+
+    let linea = "";
+
+    let posicionY = y;
+
+
+    for (
+        let i = 0;
+        i < palabras.length;
+        i++
+    ) {
+
+        const prueba =
+            linea +
+            palabras[i] +
+            " ";
+
+
+        const medida =
+            ctx.measureText(prueba);
+
+
+        if (
+            medida.width > anchoMaximo &&
+            i > 0
+        ) {
+
+            ctx.fillText(
+                linea.trim(),
+                x,
+                posicionY
+            );
+
+
+            linea =
+                palabras[i] + " ";
+
+
+            posicionY +=
+                alturaLinea;
+
+        } else {
+
+            linea =
+                prueba;
+
+        }
+
+    }
+
+
+    ctx.fillText(
+        linea.trim(),
+        x,
+        posicionY
+    );
+
+
+    return posicionY;
+}
+
+
+// ======================================================
+// 6. GENERAR FOTO FINAL
+// ======================================================
 
 function generarImagenFinal(imagen) {
 
@@ -878,8 +626,7 @@ function generarImagenFinal(imagen) {
     ) {
 
         const proporcion =
-            anchoMaximo /
-            ancho;
+            anchoMaximo / ancho;
 
 
         ancho =
@@ -887,14 +634,16 @@ function generarImagenFinal(imagen) {
 
 
         alto =
-            alto *
-            proporcion;
+            alto * proporcion;
 
     }
 
 
+    // Más espacio porque ahora
+    // mostramos una dirección completa.
+
     const alturaInfo =
-        230;
+        350;
 
 
     canvas.width =
@@ -902,134 +651,158 @@ function generarImagenFinal(imagen) {
 
 
     canvas.height =
-        alto +
-        alturaInfo;
+        alto + alturaInfo;
 
 
     const ctx =
-        canvas.getContext(
-            "2d"
-        );
+        canvas.getContext("2d");
 
 
+    // ----------------------------------------------
     // FOTO
+    // ----------------------------------------------
 
     ctx.drawImage(
-
         imagen,
-
         0,
         0,
-
         ancho,
         alto
-
     );
 
 
+    // ----------------------------------------------
     // FONDO
+    // ----------------------------------------------
 
     ctx.fillStyle =
         "#111827";
 
 
     ctx.fillRect(
-
         0,
-
         alto,
-
         ancho,
-
         alturaInfo
-
     );
 
-
-    // TEXTO
 
     ctx.fillStyle =
         "#ffffff";
 
 
+    // ----------------------------------------------
+    // TÍTULO
+    // ----------------------------------------------
+
     ctx.font =
-        "bold 28px Arial";
+        "bold 30px Arial";
 
 
     ctx.fillText(
-
-        "🛡️ RONDA DE SEGURIDAD",
-
+        "RONDA DE SEGURIDAD",
         30,
-
-        alto + 40
-
+        alto + 45
     );
 
+
+    // ----------------------------------------------
+    // AGENTE
+    //
+    // NO MOSTRAMOS CÓDIGO DEL AGENTE
+    // ----------------------------------------------
 
     ctx.font =
         "22px Arial";
 
 
     ctx.fillText(
-
-        `📍 ${datosRonda.punto.nombre} — ${datosRonda.punto.codigo}`,
-
+        `Agente: ${datosRonda.agente.nombre}`,
         30,
+        alto + 85
+    );
 
-        alto + 80
 
+    // ----------------------------------------------
+    // PUNTO
+    // ----------------------------------------------
+
+    ctx.fillText(
+        `Punto: ${datosRonda.punto.nombre}`,
+        30,
+        alto + 120
     );
 
 
     ctx.fillText(
-
-        `👮 ${datosRonda.agente.nombre} — ${datosRonda.agente.codigo}`,
-
+        `Código punto: ${datosRonda.punto.codigo}`,
         30,
-
-        alto + 115
-
+        alto + 155
     );
 
 
-    const ahora =
-        new Date();
-
+    // ----------------------------------------------
+    // FECHA Y HORA
+    // ----------------------------------------------
 
     const fecha =
-        ahora.toLocaleDateString(
+        fechaFoto.toLocaleDateString(
             "es-PE"
         );
 
 
     const hora =
-        ahora.toLocaleTimeString(
+        fechaFoto.toLocaleTimeString(
             "es-PE"
         );
 
 
     ctx.fillText(
-
-        `📅 ${fecha}  🕐 ${hora}`,
-
+        `Fecha: ${fecha} - Hora: ${hora}`,
         30,
-
-        alto + 150
-
+        alto + 190
     );
+
+
+    // ----------------------------------------------
+    // UBICACIÓN
+    // ----------------------------------------------
+
+    ctx.font =
+        "bold 22px Arial";
 
 
     ctx.fillText(
+        "Ubicación:",
+        30,
+        alto + 230
+    );
 
-        `📍 GPS verificado — ${ubicacion.distanciaPunto.toFixed(1)} m`,
+
+    ctx.font =
+        "20px Arial";
+
+
+    escribirTextoEnLineas(
+
+        ctx,
+
+        direccionActual,
 
         30,
 
-        alto + 185
+        alto + 265,
+
+        ancho - 60,
+
+        28
 
     );
 
+
+    // ----------------------------------------------
+    // GENERAR JPG
+    // ----------------------------------------------
 
     canvas.toBlob(
 
@@ -1050,12 +823,19 @@ function generarImagenFinal(imagen) {
 
             estado.innerHTML = `
 
-                ✅ Fotografía preparada
+                ✅ <strong>Fotografía preparada</strong>
+
+                <br><br>
+
+                👮 ${datosRonda.agente.nombre}
 
                 <br>
 
-                📍 Distancia:
-                ${ubicacion.distanciaPunto.toFixed(1)} m
+                📍 ${datosRonda.punto.nombre}
+
+                <br>
+
+                📌 ${direccionActual}
 
             `;
 
@@ -1064,15 +844,15 @@ function generarImagenFinal(imagen) {
 
         "image/jpeg",
 
-        0.85
+        0.88
 
     );
 }
 
 
-// ========================================
-// 10. REGISTRAR RONDA
-// ========================================
+// ======================================================
+// 7. REGISTRAR RONDA
+// ======================================================
 
 btnRegistrar.addEventListener(
     "click",
@@ -1081,33 +861,6 @@ btnRegistrar.addEventListener(
 
 
 async function registrarRonda() {
-
-    if (!ubicacion) {
-
-        mostrarError(
-            "No tenemos la ubicación GPS."
-        );
-
-        return;
-    }
-
-
-    // SEGURIDAD:
-    // comprobamos otra vez la posición
-    // justo antes de registrar.
-
-    if (
-        ubicacion.dentroDelRadio !== true ||
-        gpsValidado !== true
-    ) {
-
-        mostrarError(
-            "No puedes registrar la ronda porque no estás dentro del área autorizada."
-        );
-
-        return;
-    }
-
 
     if (!imagenFinal) {
 
@@ -1129,21 +882,26 @@ async function registrarRonda() {
 
     try {
 
-        const ahora =
-            new Date();
+        const fechaRegistro =
+            fechaFoto || new Date();
 
 
         const datos = {
 
+            // ------------------------------------------
+            // AGENTE
+            // ------------------------------------------
+
             agenteId:
                 datosRonda.agente.id,
-
-            agenteCodigo:
-                datosRonda.agente.codigo,
 
             agenteNombre:
                 datosRonda.agente.nombre,
 
+
+            // ------------------------------------------
+            // PUNTO
+            // ------------------------------------------
 
             puntoId:
                 datosRonda.punto.id,
@@ -1155,40 +913,56 @@ async function registrarRonda() {
                 datosRonda.punto.nombre,
 
 
+            // ------------------------------------------
+            // FECHA
+            // ------------------------------------------
+
             fecha:
-                ahora.toLocaleDateString(
+                fechaRegistro.toLocaleDateString(
                     "es-PE"
                 ),
 
 
             hora:
-                ahora.toLocaleTimeString(
+                fechaRegistro.toLocaleTimeString(
                     "es-PE"
                 ),
 
 
+            // ------------------------------------------
+            // DIRECCIÓN
+            // ------------------------------------------
+
+            direccion:
+                direccionActual,
+
+
+            // Guardamos coordenadas internamente
+            // para auditoría, pero NO aparecen
+            // en la foto ni WhatsApp.
+
             latitud:
-                ubicacion.latitud,
+                ubicacionActual
+                    ? ubicacionActual.latitud
+                    : null,
 
 
             longitud:
-                ubicacion.longitud,
+                ubicacionActual
+                    ? ubicacionActual.longitud
+                    : null,
 
 
-            precisionGPS:
-                ubicacion.precision,
+            // ------------------------------------------
+            // QR
+            // ------------------------------------------
 
-
-            distanciaPunto:
-                ubicacion.distanciaPunto,
-
-
-            radioPermitido:
-                ubicacion.radioMetros,
-
-
-            gpsValidado:
+            qrValidado:
                 true,
+
+
+            metodoValidacion:
+                "QR_FISICO",
 
 
             estado:
@@ -1217,8 +991,9 @@ async function registrarRonda() {
             true;
 
 
-        // Una vez registrada dejamos
-        // de vigilar el GPS.
+        // ----------------------------------------------
+        // DETENER GPS
+        // ----------------------------------------------
 
         if (
             gpsWatchId !== null
@@ -1231,7 +1006,6 @@ async function registrarRonda() {
 
             gpsWatchId =
                 null;
-
         }
 
 
@@ -1241,25 +1015,26 @@ async function registrarRonda() {
 
         estado.innerHTML = `
 
-            ✅ <strong>Ronda registrada correctamente</strong>
+            ✅ <strong>RONDA REGISTRADA</strong>
+
+            <br><br>
+
+            👮 Agente:
+            ${datosRonda.agente.nombre}
 
             <br>
 
-            Los datos fueron guardados.
+            📍 Punto:
+            ${datosRonda.punto.nombre}
 
             <br>
 
-            📍 Distancia:
-            ${ubicacion.distanciaPunto.toFixed(1)} m
+            📌 Ubicación:
+            ${direccionActual}
 
-            <br>
+            <br><br>
 
-            📡 Precisión:
-            ±${ubicacion.precision.toFixed(1)} m
-
-            <br>
-
-            La fotografía NO fue almacenada.
+            📱 QR físico: VALIDADO
 
         `;
 
@@ -1274,7 +1049,9 @@ async function registrarRonda() {
         );
 
 
-    } catch (errorFirebase) {
+    } catch (
+        errorFirebase
+    ) {
 
         console.error(
             errorFirebase
@@ -1282,10 +1059,8 @@ async function registrarRonda() {
 
 
         mostrarError(
-
             "No se pudo registrar la ronda: " +
             errorFirebase.message
-
         );
 
 
@@ -1295,14 +1070,13 @@ async function registrarRonda() {
 
         btnRegistrar.textContent =
             "✅ REGISTRAR RONDA";
-
     }
 }
 
 
-// ========================================
-// 11. COMPARTIR EN WHATSAPP
-// ========================================
+// ======================================================
+// 8. COMPARTIR
+// ======================================================
 
 btnCompartir.addEventListener(
     "click",
@@ -1312,9 +1086,7 @@ btnCompartir.addEventListener(
 
 async function compartirWhatsApp() {
 
-    if (
-        !rondaRegistrada
-    ) {
+    if (!rondaRegistrada) {
 
         mostrarError(
             "Primero debes registrar la ronda."
@@ -1324,40 +1096,37 @@ async function compartirWhatsApp() {
     }
 
 
-    const ahora =
-        new Date();
-
-
     const fecha =
-        ahora.toLocaleDateString(
+        fechaFoto.toLocaleDateString(
             "es-PE"
         );
 
 
     const hora =
-        ahora.toLocaleTimeString(
+        fechaFoto.toLocaleTimeString(
             "es-PE"
         );
 
 
+    // NO incluimos código del agente.
+
     const mensaje =
-        `🛡️ RONDA DE SEGURIDAD
+`🛡️ RONDA DE SEGURIDAD
 
 👮 Agente: ${datosRonda.agente.nombre}
-🔢 Código: ${datosRonda.agente.codigo}
 
 📍 Punto: ${datosRonda.punto.nombre}
-🔲 Código: ${datosRonda.punto.codigo}
+🔲 Código punto: ${datosRonda.punto.codigo}
 
 📅 Fecha: ${fecha}
 🕐 Hora: ${hora}
 
-📍 GPS: Verificado
-📏 Distancia al punto: ${ubicacion.distanciaPunto.toFixed(1)} m
-📡 Precisión GPS: ±${ubicacion.precision.toFixed(1)} m
-🎯 Radio permitido: ${ubicacion.radioMetros} m
+📌 Ubicación:
+${direccionActual}
 
-✅ Punto registrado`;
+📱 QR físico: VALIDADO
+📸 Evidencia registrada`;
+
 
 
     const archivo =
@@ -1368,10 +1137,7 @@ async function compartirWhatsApp() {
             `ronda-${datosRonda.punto.codigo}-${Date.now()}.jpg`,
 
             {
-
-                type:
-                    "image/jpeg"
-
+                type: "image/jpeg"
             }
 
         );
@@ -1380,15 +1146,11 @@ async function compartirWhatsApp() {
     try {
 
         if (
-
             navigator.share &&
-
             navigator.canShare &&
-
             navigator.canShare({
                 files: [archivo]
             })
-
         ) {
 
             await navigator.share({
@@ -1401,50 +1163,47 @@ async function compartirWhatsApp() {
 
             });
 
-
         } else {
 
             descargarImagen();
 
 
             alert(
-
-                "La función de compartir archivos no está disponible en este navegador. Se descargó la fotografía para que puedas enviarla por WhatsApp."
-
+                "Este navegador no permite compartir directamente. La fotografía fue descargada."
             );
-
         }
 
 
     } catch (
-    errorCompartir
+        errorCompartir
     ) {
 
         console.log(
             "Compartir cancelado:",
             errorCompartir
         );
-
     }
 }
 
 
-// ========================================
-// 12. DESCARGAR RESPALDO
-// ========================================
+// ======================================================
+// 9. DESCARGAR FOTO
+// ======================================================
 
 function descargarImagen() {
 
     const enlace =
-        document.createElement(
-            "a"
+        document.createElement("a");
+
+
+    const url =
+        URL.createObjectURL(
+            imagenFinal
         );
 
 
     enlace.href =
-        URL.createObjectURL(
-            imagenFinal
-        );
+        url;
 
 
     enlace.download =
@@ -1454,15 +1213,20 @@ function descargarImagen() {
     enlace.click();
 
 
-    URL.revokeObjectURL(
-        enlace.href
+    setTimeout(
+        () => {
+
+            URL.revokeObjectURL(url);
+
+        },
+        1000
     );
 }
 
 
-// ========================================
-// 13. MOSTRAR ERROR
-// ========================================
+// ======================================================
+// 10. MOSTRAR ERROR
+// ======================================================
 
 function mostrarError(texto) {
 
@@ -1476,9 +1240,9 @@ function mostrarError(texto) {
 }
 
 
-// ========================================
-// 14. DETENER GPS AL SALIR
-// ========================================
+// ======================================================
+// 11. DETENER GPS AL SALIR
+// ======================================================
 
 window.addEventListener(
 
@@ -1493,7 +1257,6 @@ window.addEventListener(
             navigator.geolocation.clearWatch(
                 gpsWatchId
             );
-
         }
 
     }
@@ -1501,14 +1264,13 @@ window.addEventListener(
 );
 
 
-// ========================================
-// 15. INICIAR
-// ========================================
+// ======================================================
+// 12. INICIAR
+// ======================================================
 
 if (
     cargarDatos()
 ) {
 
-    obtenerUbicacion();
-
+    iniciarGPS();
 }
