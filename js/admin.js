@@ -5,7 +5,11 @@ import {
     getDocs,
     query,
     orderBy,
-    limit
+    limit,
+    doc,
+    getDoc,
+    setDoc,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 
@@ -188,9 +192,11 @@ async function cargarRondas() {
 
     ocultarError();
 
-    cargando.style.display = "block";
+    cargando.style.display =
+        "block";
 
-    listaRondas.innerHTML = "";
+    listaRondas.innerHTML =
+        "";
 
 
     try {
@@ -231,7 +237,8 @@ async function cargarRondas() {
 
                 rondas.push({
 
-                    id: documento.id,
+                    id:
+                        documento.id,
 
                     ...datos
 
@@ -240,12 +247,15 @@ async function cargarRondas() {
         );
 
 
-        cargando.style.display = "none";
+        cargando.style.display =
+            "none";
 
 
         actualizarResumen();
 
-        mostrarRondas(rondas);
+        mostrarRondas(
+            rondas
+        );
 
 
     } catch (e) {
@@ -256,7 +266,8 @@ async function cargarRondas() {
         );
 
 
-        cargando.style.display = "none";
+        cargando.style.display =
+            "none";
 
 
         mostrarError(
@@ -285,7 +296,8 @@ function actualizarResumen() {
         new Set();
 
 
-    let contadorHoy = 0;
+    let contadorHoy =
+        0;
 
 
     const hoy =
@@ -335,7 +347,7 @@ function actualizarResumen() {
 
 
 // ======================================================
-// FECHA DE HOY
+// FECHA
 // ======================================================
 
 function fechaLocalActual() {
@@ -382,7 +394,8 @@ function fechaLocalActual() {
 
 function mostrarRondas(datos) {
 
-    listaRondas.innerHTML = "";
+    listaRondas.innerHTML =
+        "";
 
 
     if (
@@ -424,7 +437,7 @@ function mostrarRondas(datos) {
 
 
 // ======================================================
-// CREAR TARJETA DE RONDA
+// TARJETA DE RONDA
 // ======================================================
 
 function crearTarjetaRonda(ronda) {
@@ -438,10 +451,6 @@ function crearTarjetaRonda(ronda) {
     tarjeta.className =
         "ronda";
 
-
-    // --------------------------
-    // SUPERIOR
-    // --------------------------
 
     const superior =
         document.createElement(
@@ -498,10 +507,6 @@ function crearTarjetaRonda(ronda) {
         estado
     );
 
-
-    // --------------------------
-    // DETALLE
-    // --------------------------
 
     const detalle =
         document.createElement(
@@ -616,7 +621,7 @@ function agregarLinea(
 
 
 // ======================================================
-// BUSCAR
+// FILTRAR
 // ======================================================
 
 function filtrarRondas() {
@@ -671,7 +676,7 @@ function filtrarRondas() {
 
 
 // ======================================================
-// ERROR DEL PANEL
+// ERROR PANEL
 // ======================================================
 
 function mostrarError(texto) {
@@ -693,10 +698,91 @@ function ocultarError() {
 
 
 // ======================================================
-// GENERAR QR
+// ERROR QR
 // ======================================================
 
-function generarQRAdmin() {
+function mostrarErrorQR(texto) {
+
+    qrError.textContent =
+        texto;
+
+
+    qrError.style.display =
+        "block";
+}
+
+
+function ocultarErrorQR() {
+
+    qrError.style.display =
+        "none";
+}
+
+
+// ======================================================
+// GENERAR QR VISUAL
+// ======================================================
+
+function crearQRVisual(
+    codigo,
+    nombre
+) {
+
+    urlQRActual =
+        window.location.origin +
+        "/ronda.html?punto=" +
+        encodeURIComponent(
+            codigo
+        );
+
+
+    codigoQR.innerHTML =
+        "";
+
+
+    new window.QRCode(
+        codigoQR,
+        {
+            text:
+                urlQRActual,
+
+            width:
+                260,
+
+            height:
+                260,
+
+            correctLevel:
+                window.QRCode
+                    .CorrectLevel
+                    .H
+        }
+    );
+
+
+    qrNombreVisual.textContent =
+        nombre;
+
+
+    qrCodigoVisual.textContent =
+        "Código: " +
+        codigo;
+
+
+    qrUrl.textContent =
+        urlQRActual;
+
+
+    qrResultado.style.display =
+        "block";
+}
+
+
+// ======================================================
+// GUARDAR PUNTO + GENERAR QR
+// ======================================================
+
+async function guardarPuntoYGenerarQR() {
 
     ocultarErrorQR();
 
@@ -736,81 +822,174 @@ function generarQRAdmin() {
     }
 
 
+    // Solo P01, P02, P03, P100...
+
+    if (
+        !/^P\d+$/.test(codigo)
+    ) {
+
+        mostrarErrorQR(
+            "El código debe tener formato P01, P02, P03..."
+        );
+
+        qrCodigo.focus();
+
+        return;
+    }
+
+
     if (
         typeof window.QRCode ===
         "undefined"
     ) {
 
         mostrarErrorQR(
-            "No se pudo cargar el generador de QR."
+            "No se pudo cargar el generador QR."
         );
 
         return;
     }
 
 
-    // URL QUE ABRIRÁ EL QR
+    btnGenerarQR.disabled =
+        true;
 
-    urlQRActual =
-        window.location.origin +
-        "/ronda.html?punto=" +
-        encodeURIComponent(
-            codigo
+
+    btnGenerarQR.textContent =
+        "GUARDANDO PUNTO...";
+
+
+    try {
+
+        // Documento puntos/P01, puntos/P02...
+
+        const referenciaPunto =
+            doc(
+                db,
+                "puntos",
+                codigo
+            );
+
+
+        const existente =
+            await getDoc(
+                referenciaPunto
+            );
+
+
+        // ==========================================
+        // SI YA EXISTE
+        // ==========================================
+
+        if (existente.exists()) {
+
+            const datos =
+                existente.data();
+
+
+            if (
+                datos.activo !== true
+            ) {
+
+                throw new Error(
+                    "El punto " +
+                    codigo +
+                    " ya existe pero está desactivado."
+                );
+            }
+
+
+            // Generamos el QR del punto existente
+
+            crearQRVisual(
+                codigo,
+                datos.nombre || nombre
+            );
+
+
+            mostrarMensajeQRExito(
+                "✅ El punto " +
+                codigo +
+                " ya existía. Se generó nuevamente su QR."
+            );
+
+
+            return;
+        }
+
+
+        // ==========================================
+        // CREAR NUEVO PUNTO
+        // ==========================================
+
+        await setDoc(
+            referenciaPunto,
+            {
+                codigo:
+                    codigo,
+
+                nombre:
+                    nombre,
+
+                activo:
+                    true,
+
+                creadoEn:
+                    serverTimestamp()
+            }
         );
 
 
-    // LIMPIAR QR ANTERIOR
+        // ==========================================
+        // QR
+        // ==========================================
 
-    codigoQR.innerHTML = "";
-
-
-    // CREAR QR
-
-    new window.QRCode(
-        codigoQR,
-        {
-            text:
-                urlQRActual,
-
-            width:
-                260,
-
-            height:
-                260,
-
-            correctLevel:
-                window.QRCode
-                    .CorrectLevel
-                    .H
-        }
-    );
+        crearQRVisual(
+            codigo,
+            nombre
+        );
 
 
-    // INFORMACIÓN VISUAL
-
-    qrNombreVisual.textContent =
-        nombre;
-
-
-    qrCodigoVisual.textContent =
-        "Código: " +
-        codigo;
+        mostrarMensajeQRExito(
+            "✅ Punto " +
+            codigo +
+            " creado correctamente en Firebase. El QR ya está listo."
+        );
 
 
-    qrUrl.textContent =
-        urlQRActual;
+    } catch (e) {
+
+        console.error(
+            "Error creando punto:",
+            e
+        );
 
 
-    qrResultado.style.display =
-        "block";
+        mostrarErrorQR(
+            "No se pudo crear el punto: " +
+            e.message
+        );
+
+
+    } finally {
+
+        btnGenerarQR.disabled =
+            false;
+
+
+        btnGenerarQR.textContent =
+            "💾 GUARDAR PUNTO Y GENERAR QR";
+    }
 }
 
 
 // ======================================================
-// ERROR QR
+// MENSAJE DE ÉXITO QR
 // ======================================================
 
-function mostrarErrorQR(texto) {
+function mostrarMensajeQRExito(
+    texto
+) {
 
     qrError.textContent =
         texto;
@@ -818,14 +997,42 @@ function mostrarErrorQR(texto) {
 
     qrError.style.display =
         "block";
+
+
+    qrError.style.background =
+        "#d1e7dd";
+
+
+    qrError.style.color =
+        "#0f5132";
 }
 
 
-function ocultarErrorQR() {
+// ======================================================
+// RESTABLECER ESTILO MENSAJE
+// ======================================================
 
-    qrError.style.display =
-        "none";
+function restaurarMensajeQR() {
+
+    qrError.style.background =
+        "#fee2e2";
+
+
+    qrError.style.color =
+        "#991b1b";
 }
+
+
+qrCodigo.addEventListener(
+    "input",
+    restaurarMensajeQR
+);
+
+
+qrNombre.addEventListener(
+    "input",
+    restaurarMensajeQR
+);
 
 
 // ======================================================
@@ -833,9 +1040,6 @@ function ocultarErrorQR() {
 // ======================================================
 
 function descargarQRAdmin() {
-
-    ocultarErrorQR();
-
 
     const canvas =
         codigoQR.querySelector(
@@ -849,7 +1053,8 @@ function descargarQRAdmin() {
         );
 
 
-    let dataURL = "";
+    let dataURL =
+        "";
 
 
     if (canvas) {
@@ -865,6 +1070,8 @@ function descargarQRAdmin() {
             imagen.src;
 
     } else {
+
+        restaurarMensajeQR();
 
         mostrarErrorQR(
             "Primero genera un código QR."
@@ -914,10 +1121,9 @@ function descargarQRAdmin() {
 
 function imprimirQRAdmin() {
 
-    ocultarErrorQR();
-
-
     if (!urlQRActual) {
+
+        restaurarMensajeQR();
 
         mostrarErrorQR(
             "Primero genera un código QR."
@@ -945,6 +1151,8 @@ function imprimirQRAdmin() {
 
 
     if (!ventana) {
+
+        restaurarMensajeQR();
 
         mostrarErrorQR(
             "El navegador bloqueó la ventana de impresión."
@@ -975,7 +1183,6 @@ function imprimirQRAdmin() {
                     padding: 40px;
                     font-family: Arial, sans-serif;
                     text-align: center;
-                    background: white;
                 }
 
                 .area-qr {
@@ -983,7 +1190,6 @@ function imprimirQRAdmin() {
                     border: 2px solid #111;
                     border-radius: 12px;
                     padding: 25px;
-                    background: white;
                 }
 
                 .qr-titulo {
@@ -1041,7 +1247,7 @@ function imprimirQRAdmin() {
 
 
 // ======================================================
-// EVENTOS DE RONDAS
+// EVENTOS
 // ======================================================
 
 buscador.addEventListener(
@@ -1056,13 +1262,9 @@ btnActualizar.addEventListener(
 );
 
 
-// ======================================================
-// EVENTOS QR
-// ======================================================
-
 btnGenerarQR.addEventListener(
     "click",
-    generarQRAdmin
+    guardarPuntoYGenerarQR
 );
 
 
@@ -1079,7 +1281,7 @@ btnImprimirQR.addEventListener(
 
 
 // ======================================================
-// ENTER PARA GENERAR QR
+// ENTER
 // ======================================================
 
 qrCodigo.addEventListener(
@@ -1092,7 +1294,7 @@ qrCodigo.addEventListener(
 
             event.preventDefault();
 
-            generarQRAdmin();
+            guardarPuntoYGenerarQR();
         }
     }
 );
@@ -1108,14 +1310,14 @@ qrNombre.addEventListener(
 
             event.preventDefault();
 
-            generarQRAdmin();
+            guardarPuntoYGenerarQR();
         }
     }
 );
 
 
 // ======================================================
-// INICIAR PANEL
+// INICIAR
 // ======================================================
 
 cargarRondas();

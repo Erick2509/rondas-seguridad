@@ -5,17 +5,13 @@
 
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Panel de Administración</title>
 
     <link rel="icon" href="data:,">
 
     <style>
-
         * {
             box-sizing: border-box;
         }
@@ -84,7 +80,7 @@
             cursor: pointer;
             font-size: 15px;
             font-weight: bold;
-            box-shadow: 0 2px 7px rgba(0,0,0,0.07);
+            box-shadow: 0 2px 7px rgba(0, 0, 0, 0.07);
         }
 
         .menu button:hover {
@@ -126,7 +122,7 @@
             background: white;
             border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
         .etiqueta {
@@ -150,7 +146,7 @@
             padding: 15px;
             border-radius: 12px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
         .barra input {
@@ -181,7 +177,7 @@
             padding: 18px;
             border-radius: 12px;
             margin-bottom: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
         }
 
         .ronda-superior {
@@ -403,7 +399,6 @@
                 padding: 15px;
             }
         }
-
     </style>
 
 </head>
@@ -412,363 +407,273 @@
 <body>
 
 
-<header>
+    <header>
 
-    <div class="header-contenido">
+        <div class="header-contenido">
 
-        <h1>
-            🛡️ Panel de Administración
-        </h1>
+            <h1>
+                🛡️ Panel de Administración
+            </h1>
 
-        <p>
-            Sistema de rondas de seguridad
-        </p>
+            <p>
+                Sistema de rondas de seguridad
+            </p>
 
-    </div>
+        </div>
 
-</header>
-
-
-<main class="contenedor">
+    </header>
 
 
-    <!-- ==============================
+    <main class="contenedor">
+
+
+        <!-- ==============================
          MENÚ
     =============================== -->
 
-    <nav class="menu">
+        <nav class="menu">
 
-        <button
-            id="menuInicio"
-            class="activo"
-            type="button"
-        >
-            📊 Inicio
-        </button>
+            <button id="menuInicio" class="activo" type="button">
+                📊 Inicio
+            </button>
 
-        <button
-            id="menuRondas"
-            type="button"
-        >
-            📋 Rondas
-        </button>
+            <button id="menuRondas" type="button">
+                📋 Rondas
+            </button>
 
-        <button
-            id="menuQR"
-            type="button"
-        >
-            📱 Puntos / QR
-        </button>
+            <button id="menuQR" type="button">
+                📱 Puntos / QR
+            </button>
 
-    </nav>
+        </nav>
 
 
-    <!-- ==============================
+        <!-- ==============================
          INICIO
     =============================== -->
 
-    <section
-        id="seccionInicio"
-        class="seccion activa"
-    >
+        <section id="seccionInicio" class="seccion activa">
 
-        <h2>
-            Resumen
-        </h2>
+            <h2>
+                Resumen
+            </h2>
 
 
-        <div class="resumen">
+            <div class="resumen">
 
 
-            <div class="tarjeta">
+                <div class="tarjeta">
 
-                <div class="etiqueta">
-                    Rondas cargadas
+                    <div class="etiqueta">
+                        Rondas cargadas
+                    </div>
+
+                    <div id="totalRondas" class="numero">
+                        0
+                    </div>
+
                 </div>
 
-                <div
-                    id="totalRondas"
-                    class="numero"
-                >
-                    0
+
+                <div class="tarjeta">
+
+                    <div class="etiqueta">
+                        Rondas de hoy
+                    </div>
+
+                    <div id="rondasHoy" class="numero">
+                        0
+                    </div>
+
                 </div>
 
-            </div>
 
+                <div class="tarjeta">
 
-            <div class="tarjeta">
+                    <div class="etiqueta">
+                        Agentes
+                    </div>
 
-                <div class="etiqueta">
-                    Rondas de hoy
+                    <div id="totalAgentes" class="numero">
+                        0
+                    </div>
+
                 </div>
 
-                <div
-                    id="rondasHoy"
-                    class="numero"
-                >
-                    0
-                </div>
 
-            </div>
+                <div class="tarjeta">
 
+                    <div class="etiqueta">
+                        Puntos visitados
+                    </div>
 
-            <div class="tarjeta">
+                    <div id="totalPuntos" class="numero">
+                        0
+                    </div>
 
-                <div class="etiqueta">
-                    Agentes
-                </div>
-
-                <div
-                    id="totalAgentes"
-                    class="numero"
-                >
-                    0
-                </div>
-
-            </div>
-
-
-            <div class="tarjeta">
-
-                <div class="etiqueta">
-                    Puntos visitados
-                </div>
-
-                <div
-                    id="totalPuntos"
-                    class="numero"
-                >
-                    0
                 </div>
 
             </div>
 
-        </div>
+
+            <div class="tarjeta">
+
+                <h3>
+                    Últimas rondas
+                </h3>
+
+                <p>
+                    Usa la pestaña
+                    <strong>Rondas</strong>
+                    para revisar el historial completo.
+                </p>
+
+            </div>
+
+        </section>
 
 
-        <div class="tarjeta">
-
-            <h3>
-                Últimas rondas
-            </h3>
-
-            <p>
-                Usa la pestaña
-                <strong>Rondas</strong>
-                para revisar el historial completo.
-            </p>
-
-        </div>
-
-    </section>
-
-
-    <!-- ==============================
+        <!-- ==============================
          RONDAS
     =============================== -->
 
-    <section
-        id="seccionRondas"
-        class="seccion"
-    >
+        <section id="seccionRondas" class="seccion">
 
-        <h2>
-            📋 Historial de rondas
-        </h2>
+            <h2>
+                📋 Historial de rondas
+            </h2>
 
 
-        <div class="barra">
+            <div class="barra">
 
-            <input
-                type="search"
-                id="buscador"
-                placeholder="Buscar agente, punto, código, fecha o dirección..."
-            >
+                <input type="search" id="buscador" placeholder="Buscar agente, punto, código, fecha o dirección...">
 
-            <button
-                id="btnActualizar"
-                class="btn-actualizar"
-                type="button"
-            >
-                🔄 Actualizar
-            </button>
+                <button id="btnActualizar" class="btn-actualizar" type="button">
+                    🔄 Actualizar
+                </button>
 
-        </div>
+            </div>
 
 
-        <div
-            id="error"
-            class="error"
-        ></div>
+            <div id="error" class="error"></div>
 
 
-        <div
-            id="cargando"
-            class="cargando"
-        >
-            Cargando rondas...
-        </div>
+            <div id="cargando" class="cargando">
+                Cargando rondas...
+            </div>
 
 
-        <div id="listaRondas"></div>
+            <div id="listaRondas"></div>
 
-    </section>
+        </section>
 
 
-    <!-- ==============================
+        <!-- ==============================
          PUNTOS / QR
     =============================== -->
 
-    <section
-        id="seccionQR"
-        class="seccion"
-    >
+        <section id="seccionQR" class="seccion">
 
-        <div class="tarjeta qr-panel">
+            <div class="tarjeta qr-panel">
 
-            <h2>
-                📱 Generador de códigos QR
-            </h2>
+                <h2>
+                    📱 Generador de códigos QR
+                </h2>
 
-            <p>
-                Genera el código QR físico para cada
-                punto de control.
-            </p>
+                <p>
+                    Genera el código QR físico para cada
+                    punto de control.
+                </p>
 
 
-            <label for="qrCodigo">
-                Código del punto
-            </label>
+                <label for="qrCodigo">
+                    Código del punto
+                </label>
 
-            <input
-                id="qrCodigo"
-                type="text"
-                placeholder="Ejemplo: P01"
-                autocomplete="off"
-            >
+                <input id="qrCodigo" type="text" placeholder="Ejemplo: P01" autocomplete="off">
 
 
-            <label for="qrNombre">
-                Nombre del punto
-            </label>
+                <label for="qrNombre">
+                    Nombre del punto
+                </label>
 
-            <input
-                id="qrNombre"
-                type="text"
-                placeholder="Ejemplo: Cochera Principal"
-                autocomplete="off"
-            >
+                <input id="qrNombre" type="text" placeholder="Ejemplo: Cochera Principal" autocomplete="off">
 
 
-            <button
-                id="btnGenerarQR"
-                class="btn-principal"
-                type="button"
-            >
-                GENERAR QR
-            </button>
+                <button id="btnGenerarQR" class="btn-principal" type="button">
+                    💾 GUARDAR PUNTO Y GENERAR QR
+                </button>
 
 
-            <div
-                id="qrError"
-                class="qr-error"
-            ></div>
+                <div id="qrError" class="qr-error"></div>
 
 
-            <div
-                id="qrResultado"
-                class="qr-resultado"
-            >
+                <div id="qrResultado" class="qr-resultado">
 
 
-                <div
-                    id="areaQR"
-                    class="area-qr"
-                >
+                    <div id="areaQR" class="area-qr">
 
-                    <div class="qr-titulo">
-                        🛡️ RONDA DE SEGURIDAD
+                        <div class="qr-titulo">
+                            🛡️ RONDA DE SEGURIDAD
+                        </div>
+
+
+                        <div id="qrNombreVisual" class="qr-nombre"></div>
+
+
+                        <div id="qrCodigoVisual" class="qr-codigo"></div>
+
+
+                        <div id="codigoQR"></div>
+
+
+                        <div id="qrUrl" class="qr-url"></div>
+
                     </div>
 
 
-                    <div
-                        id="qrNombreVisual"
-                        class="qr-nombre"
-                    ></div>
+                    <button id="btnDescargarQR" class="btn-descargar" type="button">
+                        ⬇ DESCARGAR QR
+                    </button>
 
 
-                    <div
-                        id="qrCodigoVisual"
-                        class="qr-codigo"
-                    ></div>
+                    <button id="btnImprimirQR" class="btn-imprimir" type="button">
+                        🖨 IMPRIMIR QR
+                    </button>
 
-
-                    <div id="codigoQR"></div>
-
-
-                    <div
-                        id="qrUrl"
-                        class="qr-url"
-                    ></div>
 
                 </div>
 
 
-                <button
-                    id="btnDescargarQR"
-                    class="btn-descargar"
-                    type="button"
-                >
-                    ⬇ DESCARGAR QR
-                </button>
+                <div class="nota">
 
+                    ⚠️ El generador solamente crea el
+                    código QR.
 
-                <button
-                    id="btnImprimirQR"
-                    class="btn-imprimir"
-                    type="button"
-                >
-                    🖨 IMPRIMIR QR
-                </button>
+                    <br><br>
 
+                    El punto también debe existir en
+                    Firebase dentro de la colección
+                    <strong>puntos</strong>.
+
+                </div>
 
             </div>
 
-
-            <div class="nota">
-
-                ⚠️ El generador solamente crea el
-                código QR.
-
-                <br><br>
-
-                El punto también debe existir en
-                Firebase dentro de la colección
-                <strong>puntos</strong>.
-
-            </div>
-
-        </div>
-
-    </section>
+        </section>
 
 
-</main>
+    </main>
 
 
-<!-- LIBRERÍA PARA GENERAR QR -->
+    <!-- LIBRERÍA PARA GENERAR QR -->
 
-<script
-    src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
-></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 
-<!-- JAVASCRIPT DEL PANEL -->
+    <!-- JAVASCRIPT DEL PANEL -->
 
-<script
-    type="module"
-    src="js/admin.js"
-></script>
+    <script type="module" src="js/admin.js"></script>
 
 
 </body>
