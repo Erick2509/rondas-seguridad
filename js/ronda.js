@@ -93,10 +93,39 @@ async function cargarPunto() {
         }
 
 
+        if (
+            typeof punto.latitud !== "number" ||
+            typeof punto.longitud !== "number"
+        ) {
+
+            mostrarError(
+                "Este punto no tiene coordenadas GPS configuradas."
+            );
+
+            return;
+        }
+
+
         puntoActual = {
+
             id: codigoPunto,
-            codigo: punto.codigo,
-            nombre: punto.nombre
+
+            codigo:
+                punto.codigo,
+
+            nombre:
+                punto.nombre,
+
+            latitud:
+                punto.latitud,
+
+            longitud:
+                punto.longitud,
+
+            radioMetros:
+                typeof punto.radioMetros === "number"
+                    ? punto.radioMetros
+                    : 30
         };
 
 
@@ -150,7 +179,8 @@ async function validarAgente() {
     }
 
 
-    btnContinuar.disabled = true;
+    btnContinuar.disabled =
+        true;
 
     btnContinuar.textContent =
         "VERIFICANDO...";
@@ -192,18 +222,28 @@ async function validarAgente() {
 
 
         agenteActual = {
-            id: codigo,
-            codigo: agente.codigo,
-            nombre: agente.nombre
+
+            id:
+                codigo,
+
+            codigo:
+                agente.codigo,
+
+            nombre:
+                agente.nombre
         };
 
 
-        // Guardamos los datos temporalmente
         sessionStorage.setItem(
             "rondaActual",
             JSON.stringify({
-                punto: puntoActual,
-                agente: agenteActual
+
+                punto:
+                    puntoActual,
+
+                agente:
+                    agenteActual
+
             })
         );
 
@@ -218,9 +258,6 @@ async function validarAgente() {
         btnContinuar.textContent =
             "CONTINUAR →";
 
-
-        // Esperamos un momento
-        // antes de continuar
 
         setTimeout(() => {
 
@@ -237,14 +274,17 @@ async function validarAgente() {
             errorFirebase
         );
 
+
         mostrarMensaje(
             "danger",
             "Error al verificar el agente."
         );
 
+
     } finally {
 
-        btnContinuar.disabled = false;
+        btnContinuar.disabled =
+            false;
 
     }
 }
@@ -257,22 +297,32 @@ async function validarAgente() {
 function mostrarMensaje(tipo, texto) {
 
     mensaje.className =
-        "alert alert-" + tipo + " mt-3";
+        "alert alert-" +
+        tipo +
+        " mt-3";
 
     mensaje.textContent =
         texto;
 
-    mensaje.classList.remove("d-none");
+    mensaje.classList.remove(
+        "d-none"
+    );
 }
 
 
 function mostrarError(texto) {
 
-    cargando.classList.add("d-none");
+    cargando.classList.add(
+        "d-none"
+    );
 
-    resultado.classList.add("d-none");
+    resultado.classList.add(
+        "d-none"
+    );
 
-    error.classList.remove("d-none");
+    error.classList.remove(
+        "d-none"
+    );
 
     mensajeError.textContent =
         texto;

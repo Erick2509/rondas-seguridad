@@ -48,13 +48,188 @@ let rondaRegistrada = false;
 
 
 // ========================================
+// CONFIGURACIÓN GPS
+// ========================================
+
+const PRECISION_MAXIMA_METROS = 50;
+
+
+// ========================================
+// CALCULAR DISTANCIA
+// ========================================
+
+function gradosARadianes(grados) {
+
+    return grados *
+        Math.PI /
+        180;
+}
+
+
+function calcularDistanciaMetros(
+    lat1,
+    lon1,
+    lat2,
+    lon2
+) {
+
+    const R =
+        6371000;
+
+
+    const dLat =
+        gradosARadianes(
+            lat2 - lat1
+        );
+
+
+    const dLon =
+        gradosARadianes(
+            lon2 - lon1
+        );
+
+
+    const a =
+        Math.sin(dLat / 2) *
+        Math.sin(dLat / 2) +
+
+        Math.cos(
+            gradosARadianes(lat1)
+        ) *
+
+        Math.cos(
+            gradosARadianes(lat2)
+        ) *
+
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+
+    const c =
+        2 *
+        Math.atan2(
+            Math.sqrt(a),
+            Math.sqrt(1 - a)
+        );
+
+
+    return R * c;
+}
+
+
+// ========================================
+// VALIDAR CERCANÍA
+// ========================================
+
+function validarCercania(
+    latitud,
+    longitud,
+    precision
+) {
+
+    const latitudPunto =
+        Number(
+            datosRonda.punto.latitud
+        );
+
+
+    const longitudPunto =
+        Number(
+            datosRonda.punto.longitud
+        );
+
+
+    const radioMetros =
+        Number(
+            datosRonda.punto.radioMetros
+            || 30
+        );
+
+
+    if (
+        !Number.isFinite(
+            latitudPunto
+        ) ||
+
+        !Number.isFinite(
+            longitudPunto
+        )
+    ) {
+
+        return {
+
+            valido:
+                false,
+
+            motivo:
+                "El punto no tiene coordenadas GPS configuradas."
+
+        };
+    }
+
+
+    if (
+        precision >
+        PRECISION_MAXIMA_METROS
+    ) {
+
+        return {
+
+            valido:
+                false,
+
+            motivo:
+                `La precisión GPS es baja (±${Math.round(precision)} m). ` +
+                "Muévete a un lugar con mejor señal e inténtalo otra vez."
+
+        };
+    }
+
+
+    const distancia =
+        calcularDistanciaMetros(
+
+            latitud,
+            longitud,
+
+            latitudPunto,
+            longitudPunto
+
+        );
+
+
+    return {
+
+        valido:
+            distancia <=
+            radioMetros,
+
+        distancia:
+            distancia,
+
+        radioMetros:
+            radioMetros,
+
+        motivo:
+            distancia <= radioMetros
+                ? ""
+                : `Estás a ${Math.round(distancia)} m del punto. ` +
+                `Debes estar a ${radioMetros} m o menos.`
+
+    };
+}
+
+
+// ========================================
 // 1. RECUPERAR DATOS
 // ========================================
 
 function cargarDatos() {
 
     const datos =
-        sessionStorage.getItem("rondaActual");
+        sessionStorage.getItem(
+            "rondaActual"
+        );
 
 
     if (!datos) {
@@ -68,24 +243,31 @@ function cargarDatos() {
 
 
     datosRonda =
-        JSON.parse(datos);
+        JSON.parse(
+            datos
+        );
 
 
     informacion.innerHTML = `
+
         <strong>👮 Agente:</strong>
         ${datosRonda.agente.nombre}
+
         <br>
 
         <strong>🔢 Código:</strong>
         ${datosRonda.agente.codigo}
+
         <br>
 
         <strong>📍 Punto:</strong>
         ${datosRonda.punto.nombre}
+
         <br>
 
         <strong>🔲 Código:</strong>
         ${datosRonda.punto.codigo}
+
     `;
 
 
@@ -99,7 +281,9 @@ function cargarDatos() {
 
 function obtenerUbicacion() {
 
-    if (!navigator.geolocation) {
+    if (
+        !navigator.geolocation
+    ) {
 
         mostrarError(
             "Este navegador no permite obtener ubicación."
@@ -116,58 +300,157 @@ function obtenerUbicacion() {
             const latitud =
                 posicion.coords.latitude;
 
+
             const longitud =
                 posicion.coords.longitude;
+
 
             const precision =
                 posicion.coords.accuracy;
 
 
+            const validacion =
+                validarCercania(
+
+                    latitud,
+
+                    longitud,
+
+                    precision
+
+                );
+
+
             ubicacion = {
-                latitud,
-                longitud,
-                precision
+
+                latitud:
+                    latitud,
+
+                longitud:
+                    longitud,
+
+                precision:
+                    precision,
+
+                distanciaPunto:
+                    validacion.distancia
+                    ?? null,
+
+                radioMetros:
+                    validacion.radioMetros
+                    ??
+                    datosRonda.punto.radioMetros
+                    ??
+                    30,
+
+                dentroDelRadio:
+                    validacion.valido
+
             };
+
+
+            if (
+                !validacion.valido
+            ) {
+
+                gps.className =
+                    "alert alert-danger";
+
+
+                gps.innerHTML = `
+
+                    ❌ <strong>Ubicación no válida</strong>
+
+                    <br>
+
+                    ${validacion.motivo}
+
+                    <br>
+
+                    Precisión:
+                    ±${Math.round(precision)} metros
+
+                `;
+
+
+                seccionFoto.classList.add(
+                    "d-none"
+                );
+
+
+                return;
+            }
 
 
             gps.className =
                 "alert alert-success";
 
+
             gps.innerHTML = `
-                ✅ <strong>Ubicación obtenida</strong>
+
+                ✅ <strong>GPS verificado</strong>
+
                 <br>
-                Latitud: ${latitud.toFixed(6)}
+
+                Distancia al punto:
+                ${Math.round(validacion.distancia)} metros
+
                 <br>
-                Longitud: ${longitud.toFixed(6)}
+
+                Radio permitido:
+                ${validacion.radioMetros} metros
+
                 <br>
-                Precisión: ±${Math.round(precision)} metros
+
+                Precisión:
+                ±${Math.round(precision)} metros
+
             `;
 
 
-            seccionFoto.classList.remove("d-none");
+            seccionFoto.classList.remove(
+                "d-none"
+            );
 
         },
 
+
         errorGPS => {
 
-            console.error(errorGPS);
+            console.error(
+                errorGPS
+            );
+
 
             gps.className =
                 "alert alert-danger";
 
+
             gps.innerHTML = `
+
                 ❌ No se pudo obtener tu ubicación.
+
                 <br>
+
                 Debes permitir el acceso a la ubicación
                 para continuar.
+
             `;
 
         },
 
+
         {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0
+
+            enableHighAccuracy:
+                true,
+
+            timeout:
+                15000,
+
+            maximumAge:
+                0
+
         }
 
     );
@@ -184,13 +467,16 @@ fotoInput.addEventListener(
 );
 
 
-function manejarFoto(event) {
+function manejarFoto(
+    event
+) {
 
     const archivo =
         event.target.files[0];
 
 
     if (!archivo) {
+
         return;
     }
 
@@ -199,28 +485,32 @@ function manejarFoto(event) {
         new FileReader();
 
 
-    lector.onload = function(e) {
+    lector.onload =
+        function (e) {
 
-        const imagen =
-            new Image();
+            const imagen =
+                new Image();
 
 
-        imagen.onload = function() {
+            imagen.onload =
+                function () {
 
-            generarImagenFinal(
-                imagen
-            );
+                    generarImagenFinal(
+                        imagen
+                    );
+
+                };
+
+
+            imagen.src =
+                e.target.result;
 
         };
 
 
-        imagen.src =
-            e.target.result;
-
-    };
-
-
-    lector.readAsDataURL(archivo);
+    lector.readAsDataURL(
+        archivo
+    );
 }
 
 
@@ -228,81 +518,114 @@ function manejarFoto(event) {
 // 4. GENERAR FOTO CON INFORMACIÓN
 // ========================================
 
-function generarImagenFinal(imagen) {
+function generarImagenFinal(
+    imagen
+) {
 
-    const anchoMaximo = 1200;
+    const anchoMaximo =
+        1200;
+
 
     let ancho =
         imagen.width;
+
 
     let alto =
         imagen.height;
 
 
-    if (ancho > anchoMaximo) {
+    if (
+        ancho >
+        anchoMaximo
+    ) {
 
         const proporcion =
-            anchoMaximo / ancho;
+            anchoMaximo /
+            ancho;
+
 
         ancho =
             anchoMaximo;
 
+
         alto =
-            alto * proporcion;
+            alto *
+            proporcion;
+
     }
 
 
-    const alturaInfo = 230;
+    const alturaInfo =
+        230;
 
 
     canvas.width =
         ancho;
 
+
     canvas.height =
-        alto + alturaInfo;
+        alto +
+        alturaInfo;
 
 
     const ctx =
-        canvas.getContext("2d");
+        canvas.getContext(
+            "2d"
+        );
 
 
-    // Foto
+    // FOTO
 
     ctx.drawImage(
+
         imagen,
+
         0,
         0,
+
         ancho,
         alto
+
     );
 
 
-    // Fondo de información
+    // FONDO
 
     ctx.fillStyle =
         "#111827";
 
+
     ctx.fillRect(
+
         0,
+
         alto,
+
         ancho,
+
         alturaInfo
+
     );
 
 
-    // Texto
+    // TEXTO
 
     ctx.fillStyle =
         "#ffffff";
+
 
     ctx.font =
         "bold 28px Arial";
 
 
     ctx.fillText(
+
         "🛡️ RONDA DE SEGURIDAD",
+
         30,
+
         alto + 40
+
     );
 
 
@@ -311,16 +634,24 @@ function generarImagenFinal(imagen) {
 
 
     ctx.fillText(
+
         `📍 ${datosRonda.punto.nombre} — ${datosRonda.punto.codigo}`,
+
         30,
+
         alto + 80
+
     );
 
 
     ctx.fillText(
+
         `👮 ${datosRonda.agente.nombre} — ${datosRonda.agente.codigo}`,
+
         30,
+
         alto + 115
+
     );
 
 
@@ -341,24 +672,34 @@ function generarImagenFinal(imagen) {
 
 
     ctx.fillText(
+
         `📅 ${fecha}  🕐 ${hora}`,
+
         30,
+
         alto + 150
+
     );
 
 
     ctx.fillText(
-        "📍 GPS: Ubicación registrada",
+
+        `📍 GPS verificado — ${Math.round(ubicacion.distanciaPunto)} m`,
+
         30,
+
         alto + 185
+
     );
 
 
     canvas.toBlob(
+
         blob => {
 
             imagenFinal =
                 blob;
+
 
             vistaPrevia.classList.remove(
                 "d-none"
@@ -367,7 +708,9 @@ function generarImagenFinal(imagen) {
         },
 
         "image/jpeg",
+
         0.85
+
     );
 }
 
@@ -377,8 +720,11 @@ function generarImagenFinal(imagen) {
 // ========================================
 
 btnRegistrar.addEventListener(
+
     "click",
+
     registrarRonda
+
 );
 
 
@@ -388,6 +734,19 @@ async function registrarRonda() {
 
         mostrarError(
             "No tenemos la ubicación GPS."
+        );
+
+        return;
+    }
+
+
+    if (
+        ubicacion.dentroDelRadio
+        !== true
+    ) {
+
+        mostrarError(
+            "No puedes registrar la ronda porque estás fuera del radio permitido."
         );
 
         return;
@@ -406,6 +765,7 @@ async function registrarRonda() {
 
     btnRegistrar.disabled =
         true;
+
 
     btnRegistrar.textContent =
         "REGISTRANDO...";
@@ -444,6 +804,7 @@ async function registrarRonda() {
                     "es-PE"
                 ),
 
+
             hora:
                 ahora.toLocaleTimeString(
                     "es-PE"
@@ -453,15 +814,30 @@ async function registrarRonda() {
             latitud:
                 ubicacion.latitud,
 
+
             longitud:
                 ubicacion.longitud,
+
 
             precisionGPS:
                 ubicacion.precision,
 
 
+            distanciaPunto:
+                ubicacion.distanciaPunto,
+
+
+            radioPermitido:
+                ubicacion.radioMetros,
+
+
+            gpsValidado:
+                true,
+
+
             estado:
                 "completada",
+
 
             timestamp:
                 serverTimestamp()
@@ -470,8 +846,14 @@ async function registrarRonda() {
 
 
         await addDoc(
-            collection(db, "rondas"),
+
+            collection(
+                db,
+                "rondas"
+            ),
+
             datos
+
         );
 
 
@@ -482,12 +864,24 @@ async function registrarRonda() {
         estado.className =
             "alert alert-success mt-3";
 
+
         estado.innerHTML = `
+
             ✅ <strong>Ronda registrada correctamente</strong>
+
             <br>
+
             Los datos fueron guardados.
+
             <br>
+
+            Distancia al punto:
+            ${Math.round(ubicacion.distanciaPunto)} metros.
+
+            <br>
+
             La fotografía NO fue almacenada.
+
         `;
 
 
@@ -501,7 +895,9 @@ async function registrarRonda() {
         );
 
 
-    } catch (errorFirebase) {
+    } catch (
+    errorFirebase
+    ) {
 
         console.error(
             errorFirebase
@@ -509,13 +905,16 @@ async function registrarRonda() {
 
 
         mostrarError(
+
             "No se pudo registrar la ronda: " +
             errorFirebase.message
+
         );
 
 
         btnRegistrar.disabled =
             false;
+
 
         btnRegistrar.textContent =
             "✅ REGISTRAR RONDA";
@@ -530,14 +929,19 @@ async function registrarRonda() {
 // ========================================
 
 btnCompartir.addEventListener(
+
     "click",
+
     compartirWhatsApp
+
 );
 
 
 async function compartirWhatsApp() {
 
-    if (!rondaRegistrada) {
+    if (
+        !rondaRegistrada
+    ) {
 
         mostrarError(
             "Primero debes registrar la ronda."
@@ -563,7 +967,8 @@ async function compartirWhatsApp() {
         );
 
 
-    const mensaje = `🛡️ RONDA DE SEGURIDAD
+    const mensaje =
+        `🛡️ RONDA DE SEGURIDAD
 
 👮 Agente: ${datosRonda.agente.nombre}
 🔢 Código: ${datosRonda.agente.codigo}
@@ -575,56 +980,76 @@ async function compartirWhatsApp() {
 🕐 Hora: ${hora}
 
 📍 GPS: Verificado
+📏 Distancia al punto: ${Math.round(ubicacion.distanciaPunto)} m
 ✅ Punto registrado`;
 
 
     const archivo =
         new File(
+
             [imagenFinal],
+
             `ronda-${datosRonda.punto.codigo}-${Date.now()}.jpg`,
+
             {
-                type: "image/jpeg"
+
+                type:
+                    "image/jpeg"
+
             }
+
         );
 
 
     try {
 
         if (
+
             navigator.share &&
+
             navigator.canShare &&
+
             navigator.canShare({
                 files: [archivo]
             })
+
         ) {
 
             await navigator.share({
 
-                text: mensaje,
+                text:
+                    mensaje,
 
-                files: [archivo]
+                files:
+                    [archivo]
 
             });
 
 
         } else {
 
-            // Fallback
-
             descargarImagen();
 
+
             alert(
+
                 "La función de compartir archivos no está disponible en este navegador. Se descargó la fotografía para que puedas enviarla por WhatsApp."
+
             );
 
         }
 
 
-    } catch (errorCompartir) {
+    } catch (
+    errorCompartir
+    ) {
 
         console.log(
+
             "Compartir cancelado:",
+
             errorCompartir
+
         );
 
     }
@@ -639,7 +1064,9 @@ async function compartirWhatsApp() {
 function descargarImagen() {
 
     const enlace =
-        document.createElement("a");
+        document.createElement(
+            "a"
+        );
 
 
     enlace.href =
@@ -666,10 +1093,13 @@ function descargarImagen() {
 // ERROR
 // ========================================
 
-function mostrarError(texto) {
+function mostrarError(
+    texto
+) {
 
     error.textContent =
         texto;
+
 
     error.classList.remove(
         "d-none"
@@ -682,7 +1112,9 @@ function mostrarError(texto) {
 // INICIAR
 // ========================================
 
-if (cargarDatos()) {
+if (
+    cargarDatos()
+) {
 
     obtenerUbicacion();
 
