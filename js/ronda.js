@@ -7,7 +7,7 @@ import {
 
 
 // ======================================================
-// ELEMENTOS
+// ELEMENTOS HTML
 // ======================================================
 
 const infoPunto =
@@ -31,11 +31,14 @@ const error =
 // ======================================================
 
 let puntoActual = null;
+
 let agenteActual = null;
+
+let promesaPunto = null;
 
 
 // ======================================================
-// LEER PUNTO DEL QR
+// OBTENER PUNTO DESDE EL QR
 //
 // Ejemplo:
 // ronda.html?punto=P01
@@ -46,19 +49,25 @@ const parametros =
         window.location.search
     );
 
+
 const codigoPunto =
     parametros.get("punto");
 
 
 // ======================================================
-// ERRORES
+// MOSTRAR ERROR
 // ======================================================
 
 function mostrarError(mensaje) {
 
-    if (!error) return;
+    if (!error) {
+        return;
+    }
 
-    error.textContent = mensaje;
+
+    error.textContent =
+        mensaje;
+
 
     error.classList.remove(
         "d-none"
@@ -66,11 +75,19 @@ function mostrarError(mensaje) {
 }
 
 
+// ======================================================
+// OCULTAR ERROR
+// ======================================================
+
 function ocultarError() {
 
-    if (!error) return;
+    if (!error) {
+        return;
+    }
+
 
     error.textContent = "";
+
 
     error.classList.add(
         "d-none"
@@ -79,54 +96,24 @@ function ocultarError() {
 
 
 // ======================================================
-// FORMULARIO
+// MOSTRAR PUNTO INMEDIATAMENTE
 // ======================================================
 
-function bloquearFormulario() {
-
-    if (codigoAgente) {
-        codigoAgente.disabled = true;
-    }
-
-    if (btnContinuar) {
-        btnContinuar.disabled = true;
-    }
-}
-
-
-function habilitarFormulario() {
-
-    if (codigoAgente) {
-        codigoAgente.disabled = false;
-    }
-
-    if (btnContinuar) {
-        btnContinuar.disabled = false;
-    }
-}
-
-
-// ======================================================
-// CARGAR PUNTO
-// ======================================================
-
-async function cargarPunto() {
-
-    bloquearFormulario();
-
-
-    // ==================================================
-    // COMPROBAR QUE EL QR TENGA PUNTO
-    // ==================================================
+function mostrarPuntoInicial() {
 
     if (!codigoPunto) {
 
         if (infoPunto) {
 
             infoPunto.innerHTML = `
+
                 ❌ <strong>PUNTO NO VÁLIDO</strong>
+
                 <br><br>
-                Debes escanear el QR del punto.
+
+                Debes escanear el QR
+                del punto de control.
+
             `;
         }
 
@@ -135,180 +122,230 @@ async function cargarPunto() {
             "No se encontró el código del punto."
         );
 
-        return;
+
+        if (codigoAgente) {
+
+            codigoAgente.disabled =
+                true;
+        }
+
+
+        if (btnContinuar) {
+
+            btnContinuar.disabled =
+                true;
+        }
+
+
+        return false;
     }
 
 
-    // ==================================================
-    // MOSTRAR PUNTO INMEDIATAMENTE
-    // ==================================================
+    // --------------------------------------------------
+    // MOSTRAR P01 SIN ESPERAR FIREBASE
+    // --------------------------------------------------
 
     if (infoPunto) {
 
         infoPunto.innerHTML = `
-            📍 <strong>Punto:</strong> ${codigoPunto}
+
+            📍 <strong>Punto:</strong>
+            ${codigoPunto}
+
             <br>
-            🔄 Cargando información...
+
+            🔄 Verificando información...
+
         `;
     }
 
 
-    try {
+    // El agente puede comenzar a escribir
+    // inmediatamente.
 
-        // ==================================================
-        // BUSCAR PUNTO EN FIREBASE
-        // ==================================================
+    if (codigoAgente) {
 
-        const referencia =
-            doc(
-                db,
-                "puntos",
-                codigoPunto
-            );
+        codigoAgente.disabled =
+            false;
 
 
-        const documento =
-            await getDoc(
-                referencia
-            );
-
-
-        // ==================================================
-        // NO EXISTE
-        // ==================================================
-
-        if (!documento.exists()) {
-
-            if (infoPunto) {
-
-                infoPunto.innerHTML = `
-                    ❌ <strong>PUNTO NO ENCONTRADO</strong>
-                `;
-            }
-
-
-            mostrarError(
-                "Este punto de control no existe."
-            );
-
-            return;
-        }
-
-
-        const punto =
-            documento.data();
-
-
-        // ==================================================
-        // PUNTO DESACTIVADO
-        // ==================================================
-
-        if (
-            punto.activo !== true
-        ) {
-
-            if (infoPunto) {
-
-                infoPunto.innerHTML = `
-                    ⛔ <strong>PUNTO DESACTIVADO</strong>
-                    <br><br>
-                    ${punto.nombre || codigoPunto}
-                `;
-            }
-
-
-            mostrarError(
-                "Este punto está desactivado."
-            );
-
-            return;
-        }
-
-
-        // ==================================================
-        // PUNTO CORRECTO
-        // ==================================================
-
-        puntoActual = {
-
-            id:
-                documento.id,
-
-            codigo:
-                punto.codigo ||
-                codigoPunto,
-
-            nombre:
-                punto.nombre ||
-                codigoPunto,
-
-            latitud:
-                punto.latitud ?? null,
-
-            longitud:
-                punto.longitud ?? null,
-
-            radioMetros:
-                punto.radioMetros ?? null
-
-        };
-
-
-        // ==================================================
-        // MOSTRAR PUNTO
-        // ==================================================
-
-        if (infoPunto) {
-
-            infoPunto.innerHTML = `
-
-                ✅ <strong>PUNTO IDENTIFICADO</strong>
-
-                <br><br>
-
-                📍 <strong>Punto:</strong>
-                ${puntoActual.nombre}
-
-                <br>
-
-                🔲 <strong>Código:</strong>
-                ${puntoActual.codigo}
-
-            `;
-        }
-
-
-        ocultarError();
-
-        habilitarFormulario();
-
-
-        if (codigoAgente) {
-
-            codigoAgente.focus();
-        }
-
-
-    } catch (e) {
-
-        console.error(
-            "Error cargando punto:",
-            e
-        );
-
-
-        mostrarError(
-            "No se pudo cargar el punto. Revisa tu conexión."
-        );
+        codigoAgente.focus();
     }
+
+
+    if (btnContinuar) {
+
+        btnContinuar.disabled =
+            false;
+    }
+
+
+    return true;
 }
 
 
 // ======================================================
-// IDENTIFICAR AGENTE
+// CONSULTAR PUNTO EN SEGUNDO PLANO
 // ======================================================
 
-async function identificarAgente(codigo) {
+async function consultarPunto() {
+
+    const referencia =
+        doc(
+            db,
+            "puntos",
+            codigoPunto
+        );
+
+
+    const inicio =
+        performance.now();
+
+
+    const documento =
+        await getDoc(
+            referencia
+        );
+
+
+    console.log(
+        "Punto Firestore:",
+        Math.round(
+            performance.now() -
+            inicio
+        ),
+        "ms"
+    );
+
+
+    // --------------------------------------------------
+    // COMPROBAR EXISTENCIA
+    // --------------------------------------------------
+
+    if (!documento.exists()) {
+
+        throw new Error(
+            "Este punto de control no existe."
+        );
+    }
+
+
+    const punto =
+        documento.data();
+
+
+    // --------------------------------------------------
+    // COMPROBAR SI ESTÁ ACTIVO
+    // --------------------------------------------------
+
+    if (
+        punto.activo !== true
+    ) {
+
+        throw new Error(
+            "Este punto de control está desactivado."
+        );
+    }
+
+
+    // --------------------------------------------------
+    // PREPARAR PUNTO
+    // --------------------------------------------------
+
+    puntoActual = {
+
+        id:
+            documento.id,
+
+        codigo:
+            punto.codigo ||
+            codigoPunto,
+
+        nombre:
+            punto.nombre ||
+            codigoPunto,
+
+        latitud:
+            punto.latitud ?? null,
+
+        longitud:
+            punto.longitud ?? null,
+
+        radioMetros:
+            punto.radioMetros ?? null
+
+    };
+
+
+    // --------------------------------------------------
+    // ACTUALIZAR PANTALLA
+    // --------------------------------------------------
+
+    if (infoPunto) {
+
+        infoPunto.innerHTML = `
+
+            ✅ <strong>PUNTO IDENTIFICADO</strong>
+
+            <br><br>
+
+            📍 <strong>Punto:</strong>
+            ${puntoActual.nombre}
+
+            <br>
+
+            🔲 <strong>Código:</strong>
+            ${puntoActual.codigo}
+
+        `;
+    }
+
+
+    return puntoActual;
+}
+
+
+// ======================================================
+// INICIAR CONSULTA DEL PUNTO
+//
+// IMPORTANTE:
+//
+// NO usamos await aquí.
+//
+// Esto permite que Firebase trabaje
+// mientras el agente escribe su código.
+// ======================================================
+
+function iniciarConsultaPunto() {
+
+    promesaPunto =
+        consultarPunto();
+
+
+    // Evitamos un error no controlado
+    // si Firebase falla antes de que
+    // el agente pulse continuar.
+
+    promesaPunto.catch(
+        e => {
+
+            console.error(
+                "Error cargando punto:",
+                e
+            );
+
+        }
+    );
+}
+
+
+// ======================================================
+// CONSULTAR AGENTE
+// ======================================================
+
+async function consultarAgente(
+    codigo
+) {
 
     const codigoLimpio =
         String(codigo).trim();
@@ -330,11 +367,29 @@ async function identificarAgente(codigo) {
         );
 
 
+    const inicio =
+        performance.now();
+
+
     const documento =
         await getDoc(
             referencia
         );
 
+
+    console.log(
+        "Agente Firestore:",
+        Math.round(
+            performance.now() -
+            inicio
+        ),
+        "ms"
+    );
+
+
+    // --------------------------------------------------
+    // NO EXISTE
+    // --------------------------------------------------
 
     if (!documento.exists()) {
 
@@ -347,6 +402,10 @@ async function identificarAgente(codigo) {
     const agente =
         documento.data();
 
+
+    // --------------------------------------------------
+    // DESACTIVADO
+    // --------------------------------------------------
 
     if (
         agente.activo !== true
@@ -379,7 +438,7 @@ async function identificarAgente(codigo) {
 
 
 // ======================================================
-// FORMULARIO DEL AGENTE
+// FORMULARIO
 // ======================================================
 
 if (formulario) {
@@ -392,21 +451,8 @@ if (formulario) {
 
             event.preventDefault();
 
+
             ocultarError();
-
-
-            // ==================================================
-            // PUNTO DEBE ESTAR CARGADO
-            // ==================================================
-
-            if (!puntoActual) {
-
-                mostrarError(
-                    "Espera mientras se carga el punto."
-                );
-
-                return;
-            }
 
 
             const codigo =
@@ -419,7 +465,9 @@ if (formulario) {
                     "Ingresa tu código de agente."
                 );
 
+
                 codigoAgente.focus();
+
 
                 return;
             }
@@ -429,7 +477,8 @@ if (formulario) {
             // BOTÓN
             // ==================================================
 
-            btnContinuar.disabled = true;
+            btnContinuar.disabled =
+                true;
 
 
             const textoOriginal =
@@ -437,18 +486,39 @@ if (formulario) {
 
 
             btnContinuar.textContent =
-                "VERIFICANDO...";
+                "CONTINUANDO...";
 
 
             try {
 
                 // ==================================================
-                // VERIFICAR AGENTE
+                // AGENTE Y PUNTO
+                //
+                // La consulta del punto probablemente
+                // ya estará terminada porque comenzó
+                // al abrir la página.
+                //
+                // La del agente empieza ahora.
                 // ==================================================
 
-                await identificarAgente(
-                    codigo
-                );
+                const resultados =
+                    await Promise.all([
+
+                        promesaPunto,
+
+                        consultarAgente(
+                            codigo
+                        )
+
+                    ]);
+
+
+                const punto =
+                    resultados[0];
+
+
+                const agente =
+                    resultados[1];
 
 
                 // ==================================================
@@ -460,45 +530,48 @@ if (formulario) {
                     punto: {
 
                         id:
-                            puntoActual.id,
+                            punto.id,
 
                         codigo:
-                            puntoActual.codigo,
+                            punto.codigo,
 
                         nombre:
-                            puntoActual.nombre,
+                            punto.nombre,
 
                         latitud:
-                            puntoActual.latitud,
+                            punto.latitud,
 
                         longitud:
-                            puntoActual.longitud,
+                            punto.longitud,
 
                         radioMetros:
-                            puntoActual.radioMetros
+                            punto.radioMetros
+
                     },
 
 
                     agente: {
 
                         id:
-                            agenteActual.id,
+                            agente.id,
 
                         codigo:
-                            agenteActual.codigo,
+                            agente.codigo,
 
                         nombre:
-                            agenteActual.nombre
+                            agente.nombre
+
                     },
 
 
                     inicio:
                         new Date().toISOString()
+
                 };
 
 
                 // ==================================================
-                // GUARDAR TEMPORALMENTE
+                // GUARDAR EN SESIÓN
                 // ==================================================
 
                 sessionStorage.setItem(
@@ -508,11 +581,12 @@ if (formulario) {
                     JSON.stringify(
                         rondaActual
                     )
+
                 );
 
 
                 // ==================================================
-                // IR A CÁMARA
+                // IR INMEDIATAMENTE A CÁMARA
                 // ==================================================
 
                 window.location.href =
@@ -522,14 +596,14 @@ if (formulario) {
             } catch (e) {
 
                 console.error(
-                    "Error agente:",
+                    "Error:",
                     e
                 );
 
 
                 mostrarError(
                     e.message ||
-                    "No se pudo verificar el agente."
+                    "No se pudo continuar."
                 );
 
 
@@ -549,7 +623,15 @@ if (formulario) {
 
 
 // ======================================================
-// INICIAR
+// INICIO
 // ======================================================
 
-cargarPunto();
+if (
+    mostrarPuntoInicial()
+) {
+
+    // Firebase comienza inmediatamente,
+    // pero NO bloquea el formulario.
+
+    iniciarConsultaPunto();
+}
