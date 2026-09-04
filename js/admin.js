@@ -13,9 +13,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 
-// ======================================================
-// ELEMENTOS DEL MENÚ
-// ======================================================
+// =====================================================
+// MENÚ
+// =====================================================
 
 const menuInicio =
     document.getElementById("menuInicio");
@@ -26,7 +26,6 @@ const menuRondas =
 const menuQR =
     document.getElementById("menuQR");
 
-
 const seccionInicio =
     document.getElementById("seccionInicio");
 
@@ -36,89 +35,6 @@ const seccionRondas =
 const seccionQR =
     document.getElementById("seccionQR");
 
-
-// ======================================================
-// ELEMENTOS RONDAS
-// ======================================================
-
-const listaRondas =
-    document.getElementById("listaRondas");
-
-const cargando =
-    document.getElementById("cargando");
-
-const error =
-    document.getElementById("error");
-
-const totalRondas =
-    document.getElementById("totalRondas");
-
-const rondasHoy =
-    document.getElementById("rondasHoy");
-
-const totalAgentes =
-    document.getElementById("totalAgentes");
-
-const totalPuntos =
-    document.getElementById("totalPuntos");
-
-const buscador =
-    document.getElementById("buscador");
-
-const btnActualizar =
-    document.getElementById("btnActualizar");
-
-
-// ======================================================
-// ELEMENTOS QR
-// ======================================================
-
-const qrCodigo =
-    document.getElementById("qrCodigo");
-
-const qrNombre =
-    document.getElementById("qrNombre");
-
-const btnGenerarQR =
-    document.getElementById("btnGenerarQR");
-
-const qrResultado =
-    document.getElementById("qrResultado");
-
-const qrError =
-    document.getElementById("qrError");
-
-const codigoQR =
-    document.getElementById("codigoQR");
-
-const qrNombreVisual =
-    document.getElementById("qrNombreVisual");
-
-const qrCodigoVisual =
-    document.getElementById("qrCodigoVisual");
-
-const qrUrl =
-    document.getElementById("qrUrl");
-
-const btnDescargarQR =
-    document.getElementById("btnDescargarQR");
-
-const btnImprimirQR =
-    document.getElementById("btnImprimirQR");
-
-
-// ======================================================
-// VARIABLES
-// ======================================================
-
-let rondas = [];
-
-let urlQRActual = "";
-
-
-// ======================================================
-// CAMBIAR SECCIÓN
-// ======================================================
 
 function mostrarSeccion(nombre) {
 
@@ -149,13 +65,11 @@ function mostrarSeccion(nombre) {
 
         seccionQR.classList.add("activa");
         menuQR.classList.add("activo");
+
+        cargarPuntos();
     }
 }
 
-
-// ======================================================
-// MENÚ
-// ======================================================
 
 menuInicio.addEventListener(
     "click",
@@ -184,33 +98,57 @@ menuQR.addEventListener(
 );
 
 
-// ======================================================
-// CARGAR RONDAS
-// ======================================================
+// =====================================================
+// RONDAS
+// =====================================================
+
+const listaRondas =
+    document.getElementById("listaRondas");
+
+const cargando =
+    document.getElementById("cargando");
+
+const error =
+    document.getElementById("error");
+
+const buscador =
+    document.getElementById("buscador");
+
+const btnActualizar =
+    document.getElementById("btnActualizar");
+
+const totalRondas =
+    document.getElementById("totalRondas");
+
+const rondasHoy =
+    document.getElementById("rondasHoy");
+
+const totalAgentes =
+    document.getElementById("totalAgentes");
+
+const totalPuntos =
+    document.getElementById("totalPuntos");
+
+
+let rondas = [];
+
 
 async function cargarRondas() {
 
-    ocultarError();
+    error.style.display = "none";
+    cargando.style.display = "block";
 
-    cargando.style.display =
-        "block";
-
-    listaRondas.innerHTML =
-        "";
+    listaRondas.innerHTML = "";
 
 
     try {
 
-        const referencia =
-            collection(
-                db,
-                "rondas"
-            );
-
-
         const consulta =
             query(
-                referencia,
+                collection(
+                    db,
+                    "rondas"
+                ),
                 orderBy(
                     "timestamp",
                     "desc"
@@ -231,16 +169,12 @@ async function cargarRondas() {
         resultado.forEach(
             function (documento) {
 
-                const datos =
-                    documento.data();
-
-
                 rondas.push({
 
                     id:
                         documento.id,
 
-                    ...datos
+                    ...documento.data()
 
                 });
             }
@@ -253,6 +187,7 @@ async function cargarRondas() {
 
         actualizarResumen();
 
+
         mostrarRondas(
             rondas
         );
@@ -260,27 +195,22 @@ async function cargarRondas() {
 
     } catch (e) {
 
-        console.error(
-            "Error cargando rondas:",
-            e
-        );
-
+        console.error(e);
 
         cargando.style.display =
             "none";
 
 
-        mostrarError(
-            "No se pudieron cargar las rondas. " +
-            e.message
-        );
+        error.textContent =
+            "No se pudieron cargar las rondas: " +
+            e.message;
+
+
+        error.style.display =
+            "block";
     }
 }
 
-
-// ======================================================
-// RESUMEN
-// ======================================================
 
 function actualizarResumen() {
 
@@ -292,16 +222,12 @@ function actualizarResumen() {
         new Set();
 
 
-    const puntos =
-        new Set();
-
-
     let contadorHoy =
         0;
 
 
     const hoy =
-        fechaLocalActual();
+        fechaHoy();
 
 
     rondas.forEach(
@@ -311,14 +237,6 @@ function actualizarResumen() {
 
                 agentes.add(
                     ronda.agenteId
-                );
-            }
-
-
-            if (ronda.puntoId) {
-
-                puntos.add(
-                    ronda.puntoId
                 );
             }
 
@@ -333,24 +251,16 @@ function actualizarResumen() {
     );
 
 
-    rondasHoy.textContent =
-        contadorHoy;
-
-
     totalAgentes.textContent =
         agentes.size;
 
 
-    totalPuntos.textContent =
-        puntos.size;
+    rondasHoy.textContent =
+        contadorHoy;
 }
 
 
-// ======================================================
-// FECHA
-// ======================================================
-
-function fechaLocalActual() {
+function fechaHoy() {
 
     const fecha =
         new Date();
@@ -359,19 +269,13 @@ function fechaLocalActual() {
     const dia =
         String(
             fecha.getDate()
-        ).padStart(
-            2,
-            "0"
-        );
+        ).padStart(2, "0");
 
 
     const mes =
         String(
             fecha.getMonth() + 1
-        ).padStart(
-            2,
-            "0"
-        );
+        ).padStart(2, "0");
 
 
     const anio =
@@ -388,10 +292,6 @@ function fechaLocalActual() {
 }
 
 
-// ======================================================
-// MOSTRAR RONDAS
-// ======================================================
-
 function mostrarRondas(datos) {
 
     listaRondas.innerHTML =
@@ -402,24 +302,10 @@ function mostrarRondas(datos) {
         datos.length === 0
     ) {
 
-        const vacio =
-            document.createElement(
-                "div"
-            );
-
-
-        vacio.className =
-            "sin-resultados";
-
-
-        vacio.textContent =
-            "No se encontraron rondas.";
-
-
-        listaRondas.appendChild(
-            vacio
-        );
-
+        listaRondas.innerHTML =
+            '<div class="sin-resultados">' +
+            'No se encontraron rondas.' +
+            '</div>';
 
         return;
     }
@@ -428,153 +314,136 @@ function mostrarRondas(datos) {
     datos.forEach(
         function (ronda) {
 
-            crearTarjetaRonda(
-                ronda
+            const tarjeta =
+                document.createElement(
+                    "div"
+                );
+
+
+            tarjeta.className =
+                "ronda";
+
+
+            const superior =
+                document.createElement(
+                    "div"
+                );
+
+
+            superior.className =
+                "ronda-superior";
+
+
+            const agente =
+                document.createElement(
+                    "div"
+                );
+
+
+            agente.className =
+                "agente";
+
+
+            agente.textContent =
+                "👮 " +
+                (
+                    ronda.agenteNombre ||
+                    "Agente"
+                );
+
+
+            const estado =
+                document.createElement(
+                    "span"
+                );
+
+
+            estado.className =
+                "estado";
+
+
+            estado.textContent =
+                "✅ " +
+                (
+                    ronda.estado ||
+                    "completada"
+                );
+
+
+            superior.appendChild(
+                agente
+            );
+
+
+            superior.appendChild(
+                estado
+            );
+
+
+            const detalle =
+                document.createElement(
+                    "div"
+                );
+
+
+            detalle.className =
+                "detalle";
+
+
+            agregarLinea(
+                detalle,
+                "📍 Punto: ",
+                ronda.puntoNombre || "-"
+            );
+
+
+            agregarLinea(
+                detalle,
+                "🔲 Código: ",
+                ronda.puntoCodigo ||
+                ronda.puntoId ||
+                "-"
+            );
+
+
+            agregarLinea(
+                detalle,
+                "📅 Fecha: ",
+                ronda.fecha || "-"
+            );
+
+
+            agregarLinea(
+                detalle,
+                "🕐 Hora: ",
+                ronda.hora || "-"
+            );
+
+
+            agregarLinea(
+                detalle,
+                "📌 Dirección: ",
+                ronda.direccion || "-"
+            );
+
+
+            tarjeta.appendChild(
+                superior
+            );
+
+
+            tarjeta.appendChild(
+                detalle
+            );
+
+
+            listaRondas.appendChild(
+                tarjeta
             );
         }
     );
 }
 
-
-// ======================================================
-// TARJETA DE RONDA
-// ======================================================
-
-function crearTarjetaRonda(ronda) {
-
-    const tarjeta =
-        document.createElement(
-            "div"
-        );
-
-
-    tarjeta.className =
-        "ronda";
-
-
-    const superior =
-        document.createElement(
-            "div"
-        );
-
-
-    superior.className =
-        "ronda-superior";
-
-
-    const agente =
-        document.createElement(
-            "div"
-        );
-
-
-    agente.className =
-        "agente";
-
-
-    agente.textContent =
-        "👮 " +
-        (
-            ronda.agenteNombre ||
-            "Agente sin nombre"
-        );
-
-
-    const estado =
-        document.createElement(
-            "span"
-        );
-
-
-    estado.className =
-        "estado";
-
-
-    estado.textContent =
-        "✅ " +
-        (
-            ronda.estado ||
-            "completada"
-        );
-
-
-    superior.appendChild(
-        agente
-    );
-
-
-    superior.appendChild(
-        estado
-    );
-
-
-    const detalle =
-        document.createElement(
-            "div"
-        );
-
-
-    detalle.className =
-        "detalle";
-
-
-    agregarLinea(
-        detalle,
-        "📍 Punto: ",
-        ronda.puntoNombre || "-"
-    );
-
-
-    agregarLinea(
-        detalle,
-        "🔲 Código: ",
-        ronda.puntoCodigo ||
-        ronda.puntoId ||
-        "-"
-    );
-
-
-    agregarLinea(
-        detalle,
-        "📅 Fecha: ",
-        ronda.fecha || "-"
-    );
-
-
-    agregarLinea(
-        detalle,
-        "🕐 Hora: ",
-        ronda.hora || "-"
-    );
-
-
-    agregarLinea(
-        detalle,
-        "📌 Dirección: ",
-        ronda.direccion ||
-        "Dirección no disponible"
-    );
-
-
-    tarjeta.appendChild(
-        superior
-    );
-
-
-    tarjeta.appendChild(
-        detalle
-    );
-
-
-    listaRondas.appendChild(
-        tarjeta
-    );
-}
-
-
-// ======================================================
-// AGREGAR LÍNEA
-// ======================================================
 
 function agregarLinea(
     contenedor,
@@ -598,19 +467,15 @@ function agregarLinea(
         titulo;
 
 
-    const texto =
-        document.createTextNode(
-            String(valor)
-        );
-
-
     linea.appendChild(
         fuerte
     );
 
 
     linea.appendChild(
-        texto
+        document.createTextNode(
+            String(valor)
+        )
     );
 
 
@@ -620,10 +485,6 @@ function agregarLinea(
 }
 
 
-// ======================================================
-// FILTRAR
-// ======================================================
-
 function filtrarRondas() {
 
     const texto =
@@ -632,17 +493,7 @@ function filtrarRondas() {
             .toLowerCase();
 
 
-    if (!texto) {
-
-        mostrarRondas(
-            rondas
-        );
-
-        return;
-    }
-
-
-    const filtradas =
+    const resultado =
         rondas.filter(
             function (ronda) {
 
@@ -651,7 +502,6 @@ function filtrarRondas() {
                     ronda.agenteNombre,
                     ronda.puntoNombre,
                     ronda.puntoCodigo,
-                    ronda.puntoId,
                     ronda.fecha,
                     ronda.hora,
                     ronda.direccion
@@ -670,58 +520,68 @@ function filtrarRondas() {
 
 
     mostrarRondas(
-        filtradas
+        resultado
     );
 }
 
 
-// ======================================================
-// ERROR PANEL
-// ======================================================
-
-function mostrarError(texto) {
-
-    error.textContent =
-        texto;
+buscador.addEventListener(
+    "input",
+    filtrarRondas
+);
 
 
-    error.style.display =
-        "block";
-}
+btnActualizar.addEventListener(
+    "click",
+    cargarRondas
+);
 
 
-function ocultarError() {
+// =====================================================
+// QR
+// =====================================================
 
-    error.style.display =
-        "none";
-}
+const qrCodigo =
+    document.getElementById("qrCodigo");
+
+const qrNombre =
+    document.getElementById("qrNombre");
+
+const btnGenerarQR =
+    document.getElementById("btnGenerarQR");
+
+const qrError =
+    document.getElementById("qrError");
+
+const qrResultado =
+    document.getElementById("qrResultado");
+
+const codigoQR =
+    document.getElementById("codigoQR");
+
+const qrNombreVisual =
+    document.getElementById("qrNombreVisual");
+
+const qrCodigoVisual =
+    document.getElementById("qrCodigoVisual");
+
+const qrUrl =
+    document.getElementById("qrUrl");
+
+const btnDescargarQR =
+    document.getElementById("btnDescargarQR");
+
+const btnImprimirQR =
+    document.getElementById("btnImprimirQR");
 
 
-// ======================================================
-// ERROR QR
-// ======================================================
-
-function mostrarErrorQR(texto) {
-
-    qrError.textContent =
-        texto;
+let urlQRActual =
+    "";
 
 
-    qrError.style.display =
-        "block";
-}
-
-
-function ocultarErrorQR() {
-
-    qrError.style.display =
-        "none";
-}
-
-
-// ======================================================
-// GENERAR QR VISUAL
-// ======================================================
+// =====================================================
+// CREAR QR VISUAL
+// =====================================================
 
 function crearQRVisual(
     codigo,
@@ -778,13 +638,64 @@ function crearQRVisual(
 }
 
 
-// ======================================================
-// GUARDAR PUNTO + GENERAR QR
-// ======================================================
+// =====================================================
+// MENSAJES
+// =====================================================
+
+function mostrarErrorQR(
+    texto
+) {
+
+    qrError.classList.remove(
+        "exito"
+    );
+
+
+    qrError.textContent =
+        texto;
+
+
+    qrError.style.display =
+        "block";
+}
+
+
+function mostrarExitoQR(
+    texto
+) {
+
+    qrError.classList.add(
+        "exito"
+    );
+
+
+    qrError.textContent =
+        texto;
+
+
+    qrError.style.display =
+        "block";
+}
+
+
+function ocultarMensajeQR() {
+
+    qrError.style.display =
+        "none";
+
+    qrError.classList.remove(
+        "exito"
+    );
+}
+
+
+// =====================================================
+// GUARDAR PUNTO ÚNICO
+// =====================================================
 
 async function guardarPuntoYGenerarQR() {
 
-    ocultarErrorQR();
+    ocultarMensajeQR();
 
 
     const codigo =
@@ -804,7 +715,19 @@ async function guardarPuntoYGenerarQR() {
             "Ingresa el código del punto."
         );
 
-        qrCodigo.focus();
+        return;
+    }
+
+
+    if (
+        !/^P\d+$/.test(
+            codigo
+        )
+    ) {
+
+        mostrarErrorQR(
+            "El código debe ser P01, P02, P03..."
+        );
 
         return;
     }
@@ -816,37 +739,6 @@ async function guardarPuntoYGenerarQR() {
             "Ingresa el nombre del punto."
         );
 
-        qrNombre.focus();
-
-        return;
-    }
-
-
-    // Solo P01, P02, P03, P100...
-
-    if (
-        !/^P\d+$/.test(codigo)
-    ) {
-
-        mostrarErrorQR(
-            "El código debe tener formato P01, P02, P03..."
-        );
-
-        qrCodigo.focus();
-
-        return;
-    }
-
-
-    if (
-        typeof window.QRCode ===
-        "undefined"
-    ) {
-
-        mostrarErrorQR(
-            "No se pudo cargar el generador QR."
-        );
-
         return;
     }
 
@@ -856,14 +748,12 @@ async function guardarPuntoYGenerarQR() {
 
 
     btnGenerarQR.textContent =
-        "GUARDANDO PUNTO...";
+        "COMPROBANDO CÓDIGO...";
 
 
     try {
 
-        // Documento puntos/P01, puntos/P02...
-
-        const referenciaPunto =
+        const referencia =
             doc(
                 db,
                 "puntos",
@@ -871,46 +761,26 @@ async function guardarPuntoYGenerarQR() {
             );
 
 
+        // COMPROBAR SI YA EXISTE
+
         const existente =
             await getDoc(
-                referenciaPunto
+                referencia
             );
 
 
-        // ==========================================
-        // SI YA EXISTE
-        // ==========================================
+        if (
+            existente.exists()
+        ) {
 
-        if (existente.exists()) {
-
-            const datos =
-                existente.data();
+            qrResultado.style.display =
+                "none";
 
 
-            if (
-                datos.activo !== true
-            ) {
-
-                throw new Error(
-                    "El punto " +
-                    codigo +
-                    " ya existe pero está desactivado."
-                );
-            }
-
-
-            // Generamos el QR del punto existente
-
-            crearQRVisual(
-                codigo,
-                datos.nombre || nombre
-            );
-
-
-            mostrarMensajeQRExito(
-                "✅ El punto " +
+            mostrarErrorQR(
+                "❌ El código " +
                 codigo +
-                " ya existía. Se generó nuevamente su QR."
+                " ya existe. Usa otro código."
             );
 
 
@@ -918,12 +788,19 @@ async function guardarPuntoYGenerarQR() {
         }
 
 
-        // ==========================================
-        // CREAR NUEVO PUNTO
-        // ==========================================
+        btnGenerarQR.textContent =
+            "GUARDANDO...";
+
+
+        // EL ID DEL DOCUMENTO ES EL MISMO CÓDIGO.
+        //
+        // puntos/P01
+        // puntos/P02
+        //
+        // Esto evita repetir códigos.
 
         await setDoc(
-            referenciaPunto,
+            referencia,
             {
                 codigo:
                     codigo,
@@ -940,27 +817,35 @@ async function guardarPuntoYGenerarQR() {
         );
 
 
-        // ==========================================
-        // QR
-        // ==========================================
-
         crearQRVisual(
             codigo,
             nombre
         );
 
 
-        mostrarMensajeQRExito(
+        mostrarExitoQR(
             "✅ Punto " +
             codigo +
-            " creado correctamente en Firebase. El QR ya está listo."
+            " creado correctamente. El código queda reservado y no podrá repetirse."
         );
+
+
+        // ACTUALIZAR HISTORIAL
+
+        await cargarPuntos();
+
+
+        qrCodigo.value =
+            "";
+
+
+        qrNombre.value =
+            "";
 
 
     } catch (e) {
 
         console.error(
-            "Error creando punto:",
             e
         );
 
@@ -983,63 +868,17 @@ async function guardarPuntoYGenerarQR() {
 }
 
 
-// ======================================================
-// MENSAJE DE ÉXITO QR
-// ======================================================
-
-function mostrarMensajeQRExito(
-    texto
-) {
-
-    qrError.textContent =
-        texto;
-
-
-    qrError.style.display =
-        "block";
-
-
-    qrError.style.background =
-        "#d1e7dd";
-
-
-    qrError.style.color =
-        "#0f5132";
-}
-
-
-// ======================================================
-// RESTABLECER ESTILO MENSAJE
-// ======================================================
-
-function restaurarMensajeQR() {
-
-    qrError.style.background =
-        "#fee2e2";
-
-
-    qrError.style.color =
-        "#991b1b";
-}
-
-
-qrCodigo.addEventListener(
-    "input",
-    restaurarMensajeQR
+btnGenerarQR.addEventListener(
+    "click",
+    guardarPuntoYGenerarQR
 );
 
 
-qrNombre.addEventListener(
-    "input",
-    restaurarMensajeQR
-);
-
-
-// ======================================================
+// =====================================================
 // DESCARGAR QR
-// ======================================================
+// =====================================================
 
-function descargarQRAdmin() {
+function descargarQR() {
 
     const canvas =
         codigoQR.querySelector(
@@ -1047,44 +886,14 @@ function descargarQRAdmin() {
         );
 
 
-    const imagen =
-        codigoQR.querySelector(
-            "img"
-        );
-
-
-    let dataURL =
-        "";
-
-
-    if (canvas) {
-
-        dataURL =
-            canvas.toDataURL(
-                "image/png"
-            );
-
-    } else if (imagen) {
-
-        dataURL =
-            imagen.src;
-
-    } else {
-
-        restaurarMensajeQR();
+    if (!canvas) {
 
         mostrarErrorQR(
-            "Primero genera un código QR."
+            "Primero selecciona o crea un QR."
         );
 
         return;
     }
-
-
-    const codigo =
-        qrCodigo.value
-            .trim()
-            .toUpperCase();
 
 
     const enlace =
@@ -1094,7 +903,18 @@ function descargarQRAdmin() {
 
 
     enlace.href =
-        dataURL;
+        canvas.toDataURL(
+            "image/png"
+        );
+
+
+    const codigo =
+        qrCodigoVisual.textContent
+            .replace(
+                "Código:",
+                ""
+            )
+            .trim();
 
 
     enlace.download =
@@ -1103,221 +923,510 @@ function descargarQRAdmin() {
         ".png";
 
 
-    document.body.appendChild(
-        enlace
-    );
-
-
     enlace.click();
-
-
-    enlace.remove();
 }
-
-
-// ======================================================
-// IMPRIMIR QR
-// ======================================================
-
-function imprimirQRAdmin() {
-
-    if (!urlQRActual) {
-
-        restaurarMensajeQR();
-
-        mostrarErrorQR(
-            "Primero genera un código QR."
-        );
-
-        return;
-    }
-
-
-    const area =
-        document.getElementById(
-            "areaQR"
-        );
-
-
-    const contenido =
-        area.outerHTML;
-
-
-    const ventana =
-        window.open(
-            "",
-            "_blank"
-        );
-
-
-    if (!ventana) {
-
-        restaurarMensajeQR();
-
-        mostrarErrorQR(
-            "El navegador bloqueó la ventana de impresión."
-        );
-
-        return;
-    }
-
-
-    ventana.document.write(
-        `
-        <!DOCTYPE html>
-
-        <html lang="es">
-
-        <head>
-
-            <meta charset="UTF-8">
-
-            <title>
-                QR Punto de Control
-            </title>
-
-            <style>
-
-                body {
-                    margin: 0;
-                    padding: 40px;
-                    font-family: Arial, sans-serif;
-                    text-align: center;
-                }
-
-                .area-qr {
-                    display: inline-block;
-                    border: 2px solid #111;
-                    border-radius: 12px;
-                    padding: 25px;
-                }
-
-                .qr-titulo {
-                    font-size: 21px;
-                    font-weight: bold;
-                    margin-bottom: 10px;
-                }
-
-                .qr-nombre {
-                    font-size: 19px;
-                    font-weight: bold;
-                    margin-bottom: 5px;
-                }
-
-                .qr-codigo {
-                    margin-bottom: 15px;
-                }
-
-                .qr-url {
-                    max-width: 300px;
-                    margin: 15px auto 0;
-                    font-size: 11px;
-                    word-break: break-all;
-                }
-
-            </style>
-
-        </head>
-
-        <body>
-
-            ${contenido}
-
-        </body>
-
-        </html>
-        `
-    );
-
-
-    ventana.document.close();
-
-
-    setTimeout(
-        function () {
-
-            ventana.focus();
-
-            ventana.print();
-
-        },
-        500
-    );
-}
-
-
-// ======================================================
-// EVENTOS
-// ======================================================
-
-buscador.addEventListener(
-    "input",
-    filtrarRondas
-);
-
-
-btnActualizar.addEventListener(
-    "click",
-    cargarRondas
-);
-
-
-btnGenerarQR.addEventListener(
-    "click",
-    guardarPuntoYGenerarQR
-);
 
 
 btnDescargarQR.addEventListener(
     "click",
-    descargarQRAdmin
+    descargarQR
 );
 
+
+// =====================================================
+// IMPRIMIR
+// =====================================================
 
 btnImprimirQR.addEventListener(
     "click",
-    imprimirQRAdmin
-);
+    function () {
 
+        if (!urlQRActual) {
 
-// ======================================================
-// ENTER
-// ======================================================
+            mostrarErrorQR(
+                "Primero crea o selecciona un QR."
+            );
 
-qrCodigo.addEventListener(
-    "keydown",
-    function (event) {
-
-        if (
-            event.key === "Enter"
-        ) {
-
-            event.preventDefault();
-
-            guardarPuntoYGenerarQR();
+            return;
         }
+
+
+        const contenido =
+            document.getElementById(
+                "areaQR"
+            ).outerHTML;
+
+
+        const ventana =
+            window.open(
+                "",
+                "_blank"
+            );
+
+
+        if (!ventana) {
+
+            return;
+        }
+
+
+        ventana.document.write(
+            `
+            <!DOCTYPE html>
+
+            <html>
+
+            <head>
+
+                <title>
+                    Código QR
+                </title>
+
+                <style>
+
+                    body {
+                        font-family: Arial;
+                        text-align: center;
+                        padding: 40px;
+                    }
+
+                    .area-qr {
+                        display: inline-block;
+                        border: 2px solid #111;
+                        padding: 25px;
+                    }
+
+                </style>
+
+            </head>
+
+            <body>
+
+                ${contenido}
+
+            </body>
+
+            </html>
+            `
+        );
+
+
+        ventana.document.close();
+
+
+        setTimeout(
+            function () {
+
+                ventana.print();
+
+            },
+            500
+        );
     }
 );
 
 
-qrNombre.addEventListener(
-    "keydown",
-    function (event) {
+// =====================================================
+// HISTORIAL DE PUNTOS / QR
+// =====================================================
 
-        if (
-            event.key === "Enter"
-        ) {
+const listaPuntos =
+    document.getElementById("listaPuntos");
 
-            event.preventDefault();
+const cargandoPuntos =
+    document.getElementById("cargandoPuntos");
 
-            guardarPuntoYGenerarQR();
+const buscarPunto =
+    document.getElementById("buscarPunto");
+
+const btnActualizarPuntos =
+    document.getElementById(
+        "btnActualizarPuntos"
+    );
+
+
+let puntos =
+    [];
+
+
+async function cargarPuntos() {
+
+    cargandoPuntos.style.display =
+        "block";
+
+
+    listaPuntos.innerHTML =
+        "";
+
+
+    try {
+
+        const resultado =
+            await getDocs(
+                collection(
+                    db,
+                    "puntos"
+                )
+            );
+
+
+        puntos =
+            [];
+
+
+        resultado.forEach(
+            function (documento) {
+
+                puntos.push({
+
+                    id:
+                        documento.id,
+
+                    ...documento.data()
+
+                });
+            }
+        );
+
+
+        puntos.sort(
+            function (a, b) {
+
+                return String(
+                    a.codigo ||
+                    a.id
+                ).localeCompare(
+                    String(
+                        b.codigo ||
+                        b.id
+                    ),
+                    undefined,
+                    {
+                        numeric: true
+                    }
+                );
+            }
+        );
+
+
+        cargandoPuntos.style.display =
+            "none";
+
+
+        totalPuntos.textContent =
+            puntos.length;
+
+
+        mostrarPuntos(
+            puntos
+        );
+
+
+    } catch (e) {
+
+        console.error(
+            "Error cargando puntos:",
+            e
+        );
+
+
+        cargandoPuntos.style.display =
+            "none";
+
+
+        listaPuntos.innerHTML =
+            '<div class="sin-resultados">' +
+            'No se pudo cargar el historial de puntos.' +
+            '</div>';
+    }
+}
+
+
+// =====================================================
+// MOSTRAR HISTORIAL
+// =====================================================
+
+function mostrarPuntos(
+    datos
+) {
+
+    listaPuntos.innerHTML =
+        "";
+
+
+    if (
+        datos.length === 0
+    ) {
+
+        listaPuntos.innerHTML =
+            '<div class="sin-resultados">' +
+            'Todavía no hay puntos creados.' +
+            '</div>';
+
+        return;
+    }
+
+
+    datos.forEach(
+        function (punto) {
+
+            const tarjeta =
+                document.createElement(
+                    "div"
+                );
+
+
+            tarjeta.className =
+                "punto-item";
+
+
+            const superior =
+                document.createElement(
+                    "div"
+                );
+
+
+            superior.className =
+                "punto-superior";
+
+
+            const info =
+                document.createElement(
+                    "div"
+                );
+
+
+            const codigo =
+                document.createElement(
+                    "div"
+                );
+
+
+            codigo.className =
+                "punto-codigo";
+
+
+            codigo.textContent =
+                "🔲 " +
+                (
+                    punto.codigo ||
+                    punto.id
+                );
+
+
+            const nombre =
+                document.createElement(
+                    "div"
+                );
+
+
+            nombre.className =
+                "punto-nombre";
+
+
+            nombre.textContent =
+                "📍 " +
+                (
+                    punto.nombre ||
+                    "Sin nombre"
+                );
+
+
+            const activo =
+                document.createElement(
+                    "div"
+                );
+
+
+            activo.className =
+                "activo-punto";
+
+
+            activo.textContent =
+                punto.activo === true
+                    ? "✅ ACTIVO"
+                    : "⛔ INACTIVO";
+
+
+            info.appendChild(
+                codigo
+            );
+
+
+            info.appendChild(
+                nombre
+            );
+
+
+            info.appendChild(
+                activo
+            );
+
+
+            // FECHA
+
+            if (
+                punto.creadoEn &&
+                typeof punto.creadoEn.toDate ===
+                "function"
+            ) {
+
+                const fecha =
+                    punto.creadoEn
+                        .toDate();
+
+
+                const fechaElemento =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                fechaElemento.className =
+                    "punto-fecha";
+
+
+                fechaElemento.textContent =
+                    "Creado: " +
+                    fecha.toLocaleString(
+                        "es-PE"
+                    );
+
+
+                info.appendChild(
+                    fechaElemento
+                );
+            }
+
+
+            // BOTÓN VER QR
+
+            const boton =
+                document.createElement(
+                    "button"
+                );
+
+
+            boton.className =
+                "btn-ver-qr";
+
+
+            boton.textContent =
+                "📱 Ver QR";
+
+
+            boton.addEventListener(
+                "click",
+                function () {
+
+                    const codigoPunto =
+                        punto.codigo ||
+                        punto.id;
+
+
+                    crearQRVisual(
+                        codigoPunto,
+                        punto.nombre ||
+                        "Punto de control"
+                    );
+
+
+                    qrCodigo.value =
+                        codigoPunto;
+
+
+                    qrNombre.value =
+                        punto.nombre ||
+                        "";
+
+
+                    qrResultado.scrollIntoView(
+                        {
+                            behavior:
+                                "smooth",
+
+                            block:
+                                "center"
+                        }
+                    );
+                }
+            );
+
+
+            superior.appendChild(
+                info
+            );
+
+
+            superior.appendChild(
+                boton
+            );
+
+
+            tarjeta.appendChild(
+                superior
+            );
+
+
+            listaPuntos.appendChild(
+                tarjeta
+            );
         }
+    );
+}
+
+
+// =====================================================
+// BUSCAR PUNTO
+// =====================================================
+
+buscarPunto.addEventListener(
+    "input",
+    function () {
+
+        const texto =
+            buscarPunto.value
+                .trim()
+                .toLowerCase();
+
+
+        const filtrados =
+            puntos.filter(
+                function (punto) {
+
+                    const contenido =
+                        (
+                            (punto.codigo || "") +
+                            " " +
+                            (punto.nombre || "")
+                        )
+                            .toLowerCase();
+
+
+                    return contenido.includes(
+                        texto
+                    );
+                }
+            );
+
+
+        mostrarPuntos(
+            filtrados
+        );
     }
 );
 
 
-// ======================================================
+btnActualizarPuntos.addEventListener(
+    "click",
+    cargarPuntos
+);
+
+
+// =====================================================
 // INICIAR
-// ======================================================
+// =====================================================
 
 cargarRondas();
+
+cargarPuntos();
