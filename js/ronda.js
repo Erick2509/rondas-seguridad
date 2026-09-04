@@ -7,41 +7,7 @@ import {
 
 
 // ======================================================
-// ELEMENTOS HTML
-// ======================================================
-
-const infoPunto =
-    document.getElementById("infoPunto");
-
-const formulario =
-    document.getElementById("formAgente");
-
-const codigoAgente =
-    document.getElementById("codigoAgente");
-
-const btnContinuar =
-    document.getElementById("btnContinuar");
-
-const error =
-    document.getElementById("error");
-
-
-// ======================================================
-// VARIABLES
-// ======================================================
-
-let puntoActual = null;
-
-let agenteActual = null;
-
-let promesaPunto = null;
-
-
-// ======================================================
-// OBTENER PUNTO DESDE EL QR
-//
-// Ejemplo:
-// ronda.html?punto=P01
+// LEER PUNTO DESDE URL
 // ======================================================
 
 const parametros =
@@ -50,23 +16,129 @@ const parametros =
     );
 
 
-const codigoPunto =
+const codigoPuntoURL =
     parametros.get("punto");
 
 
 // ======================================================
-// MOSTRAR ERROR
+// ELEMENTOS HTML
 // ======================================================
 
-function mostrarError(mensaje) {
+const infoPunto =
+    document.getElementById(
+        "infoPunto"
+    );
 
-    if (!error) {
-        return;
-    }
+
+const codigoPuntoElemento =
+    document.getElementById(
+        "codigoPunto"
+    );
 
 
-    error.textContent =
-        mensaje;
+const estadoPunto =
+    document.getElementById(
+        "estadoPunto"
+    );
+
+
+const codigoAgente =
+    document.getElementById(
+        "codigoAgente"
+    );
+
+
+const btnContinuar =
+    document.getElementById(
+        "btnContinuar"
+    );
+
+
+const mensaje =
+    document.getElementById(
+        "mensaje"
+    );
+
+
+const error =
+    document.getElementById(
+        "error"
+    );
+
+
+const mensajeError =
+    document.getElementById(
+        "mensajeError"
+    );
+
+
+// ======================================================
+// VARIABLES
+// ======================================================
+
+let puntoActual =
+    null;
+
+
+let agenteActual =
+    null;
+
+
+// Guardamos la promesa del punto.
+// Firebase comienza inmediatamente,
+// pero NO bloqueamos la pantalla.
+
+let promesaPunto =
+    null;
+
+
+// ======================================================
+// MOSTRAR MENSAJE
+// ======================================================
+
+function mostrarMensaje(
+    tipo,
+    texto
+) {
+
+    mensaje.className =
+        "alert alert-" +
+        tipo +
+        " mt-3";
+
+
+    mensaje.textContent =
+        texto;
+
+
+    mensaje.classList.remove(
+        "d-none"
+    );
+}
+
+
+// ======================================================
+// OCULTAR MENSAJE
+// ======================================================
+
+function ocultarMensaje() {
+
+    mensaje.classList.add(
+        "d-none"
+    );
+}
+
+
+// ======================================================
+// ERROR GENERAL
+// ======================================================
+
+function mostrarError(
+    texto
+) {
+
+    mensajeError.textContent =
+        texto;
 
 
     error.classList.remove(
@@ -81,14 +153,6 @@ function mostrarError(mensaje) {
 
 function ocultarError() {
 
-    if (!error) {
-        return;
-    }
-
-
-    error.textContent = "";
-
-
     error.classList.add(
         "d-none"
     );
@@ -101,83 +165,66 @@ function ocultarError() {
 
 function mostrarPuntoInicial() {
 
-    if (!codigoPunto) {
+    if (!codigoPuntoURL) {
 
-        if (infoPunto) {
+        codigoPuntoElemento.textContent =
+            "No identificado";
 
-            infoPunto.innerHTML = `
 
-                ❌ <strong>PUNTO NO VÁLIDO</strong>
+        estadoPunto.textContent =
+            "Debes escanear el QR del punto.";
 
-                <br><br>
 
-                Debes escanear el QR
-                del punto de control.
-
-            `;
-        }
+        infoPunto.className =
+            "alert alert-danger";
 
 
         mostrarError(
-            "No se encontró el código del punto."
+            "No se recibió ningún código de punto."
         );
 
 
-        if (codigoAgente) {
-
-            codigoAgente.disabled =
-                true;
-        }
+        codigoAgente.disabled =
+            true;
 
 
-        if (btnContinuar) {
-
-            btnContinuar.disabled =
-                true;
-        }
+        btnContinuar.disabled =
+            true;
 
 
         return false;
     }
 
 
-    // --------------------------------------------------
-    // MOSTRAR P01 SIN ESPERAR FIREBASE
-    // --------------------------------------------------
+    // ---------------------------------------------
+    // MOSTRAMOS P01 INSTANTÁNEAMENTE
+    // ---------------------------------------------
 
-    if (infoPunto) {
-
-        infoPunto.innerHTML = `
-
-            📍 <strong>Punto:</strong>
-            ${codigoPunto}
-
-            <br>
-
-            🔄 Verificando información...
-
-        `;
-    }
+    codigoPuntoElemento.textContent =
+        codigoPuntoURL;
 
 
-    // El agente puede comenzar a escribir
-    // inmediatamente.
-
-    if (codigoAgente) {
-
-        codigoAgente.disabled =
-            false;
+    estadoPunto.textContent =
+        "Cargando nombre del punto...";
 
 
-        codigoAgente.focus();
-    }
+    infoPunto.className =
+        "alert alert-info";
 
 
-    if (btnContinuar) {
+    // ---------------------------------------------
+    // EL AGENTE YA PUEDE ESCRIBIR
+    // ---------------------------------------------
 
-        btnContinuar.disabled =
-            false;
-    }
+    codigoAgente.disabled =
+        false;
+
+
+    btnContinuar.disabled =
+        false;
+
+
+    codigoAgente.focus();
 
 
     return true;
@@ -185,156 +232,181 @@ function mostrarPuntoInicial() {
 
 
 // ======================================================
-// CONSULTAR PUNTO EN SEGUNDO PLANO
+// CONSULTAR PUNTO EN FIREBASE
 // ======================================================
 
 async function consultarPunto() {
 
-    const referencia =
-        doc(
-            db,
-            "puntos",
-            codigoPunto
-        );
+    try {
+
+        const inicio =
+            performance.now();
 
 
-    const inicio =
-        performance.now();
+        const referencia =
+            doc(
+                db,
+                "puntos",
+                codigoPuntoURL
+            );
 
 
-    const documento =
-        await getDoc(
-            referencia
-        );
+        const documento =
+            await getDoc(
+                referencia
+            );
 
 
-    console.log(
-        "Punto Firestore:",
-        Math.round(
+        const tiempo =
             performance.now() -
-            inicio
-        ),
-        "ms"
-    );
+            inicio;
 
 
-    // --------------------------------------------------
-    // COMPROBAR EXISTENCIA
-    // --------------------------------------------------
-
-    if (!documento.exists()) {
-
-        throw new Error(
-            "Este punto de control no existe."
+        console.log(
+            "Punto Firestore:",
+            Math.round(tiempo),
+            "ms"
         );
-    }
 
 
-    const punto =
-        documento.data();
+        // ---------------------------------------------
+        // NO EXISTE
+        // ---------------------------------------------
+
+        if (
+            !documento.exists()
+        ) {
+
+            throw new Error(
+                "El punto de control no existe."
+            );
+        }
 
 
-    // --------------------------------------------------
-    // COMPROBAR SI ESTÁ ACTIVO
-    // --------------------------------------------------
-
-    if (
-        punto.activo !== true
-    ) {
-
-        throw new Error(
-            "Este punto de control está desactivado."
-        );
-    }
+        const punto =
+            documento.data();
 
 
-    // --------------------------------------------------
-    // PREPARAR PUNTO
-    // --------------------------------------------------
+        // ---------------------------------------------
+        // DESACTIVADO
+        // ---------------------------------------------
 
-    puntoActual = {
+        if (
+            punto.activo !== true
+        ) {
 
-        id:
-            documento.id,
-
-        codigo:
-            punto.codigo ||
-            codigoPunto,
-
-        nombre:
-            punto.nombre ||
-            codigoPunto,
-
-        latitud:
-            punto.latitud ?? null,
-
-        longitud:
-            punto.longitud ?? null,
-
-        radioMetros:
-            punto.radioMetros ?? null
-
-    };
+            throw new Error(
+                "Este punto de control está desactivado."
+            );
+        }
 
 
-    // --------------------------------------------------
-    // ACTUALIZAR PANTALLA
-    // --------------------------------------------------
+        // ---------------------------------------------
+        // GUARDAR PUNTO
+        // ---------------------------------------------
 
-    if (infoPunto) {
+        puntoActual = {
 
-        infoPunto.innerHTML = `
+            id:
+                documento.id,
 
-            ✅ <strong>PUNTO IDENTIFICADO</strong>
 
-            <br><br>
+            codigo:
+                punto.codigo ||
+                codigoPuntoURL,
 
-            📍 <strong>Punto:</strong>
-            ${puntoActual.nombre}
 
-            <br>
+            nombre:
+                punto.nombre ||
+                codigoPuntoURL,
 
-            🔲 <strong>Código:</strong>
-            ${puntoActual.codigo}
+
+            latitud:
+                punto.latitud ?? null,
+
+
+            longitud:
+                punto.longitud ?? null,
+
+
+            radioMetros:
+                punto.radioMetros ?? null
+
+        };
+
+
+        // ---------------------------------------------
+        // ACTUALIZAR INTERFAZ
+        // ---------------------------------------------
+
+        codigoPuntoElemento.textContent =
+            puntoActual.nombre;
+
+
+        estadoPunto.innerHTML = `
+
+            Código:
+            <strong>
+                ${puntoActual.codigo}
+            </strong>
 
         `;
+
+
+        infoPunto.className =
+            "alert alert-success";
+
+
+        return puntoActual;
+
+
+    } catch (
+        errorFirebase
+    ) {
+
+        console.error(
+            "ERROR PUNTO:",
+            errorFirebase
+        );
+
+
+        infoPunto.className =
+            "alert alert-danger";
+
+
+        codigoPuntoElemento.textContent =
+            codigoPuntoURL;
+
+
+        estadoPunto.textContent =
+            errorFirebase.message;
+
+
+        mostrarError(
+            errorFirebase.message
+        );
+
+
+        throw errorFirebase;
     }
-
-
-    return puntoActual;
 }
 
 
 // ======================================================
-// INICIAR CONSULTA DEL PUNTO
-//
-// IMPORTANTE:
-//
-// NO usamos await aquí.
-//
-// Esto permite que Firebase trabaje
-// mientras el agente escribe su código.
+// INICIAR FIREBASE EN SEGUNDO PLANO
 // ======================================================
 
-function iniciarConsultaPunto() {
+function iniciarCargaPunto() {
 
     promesaPunto =
         consultarPunto();
 
 
-    // Evitamos un error no controlado
-    // si Firebase falla antes de que
-    // el agente pulse continuar.
+    // Evita un error no controlado
+    // mientras el usuario todavía escribe.
 
     promesaPunto.catch(
-        e => {
-
-            console.error(
-                "Error cargando punto:",
-                e
-            );
-
-        }
+        () => {}
     );
 }
 
@@ -354,9 +426,13 @@ async function consultarAgente(
     if (!codigoLimpio) {
 
         throw new Error(
-            "Ingresa tu código de agente."
+            "Ingresa el código del agente."
         );
     }
+
+
+    const inicio =
+        performance.now();
 
 
     const referencia =
@@ -367,34 +443,34 @@ async function consultarAgente(
         );
 
 
-    const inicio =
-        performance.now();
-
-
     const documento =
         await getDoc(
             referencia
         );
 
 
+    const tiempo =
+        performance.now() -
+        inicio;
+
+
     console.log(
         "Agente Firestore:",
-        Math.round(
-            performance.now() -
-            inicio
-        ),
+        Math.round(tiempo),
         "ms"
     );
 
 
-    // --------------------------------------------------
-    // NO EXISTE
-    // --------------------------------------------------
+    // ---------------------------------------------
+    // AGENTE NO EXISTE
+    // ---------------------------------------------
 
-    if (!documento.exists()) {
+    if (
+        !documento.exists()
+    ) {
 
         throw new Error(
-            "El código de agente no existe."
+            "Código de agente no válido."
         );
     }
 
@@ -403,9 +479,9 @@ async function consultarAgente(
         documento.data();
 
 
-    // --------------------------------------------------
-    // DESACTIVADO
-    // --------------------------------------------------
+    // ---------------------------------------------
+    // AGENTE DESACTIVADO
+    // ---------------------------------------------
 
     if (
         agente.activo !== true
@@ -422,9 +498,11 @@ async function consultarAgente(
         id:
             documento.id,
 
+
         codigo:
             agente.codigo ||
             codigoLimpio,
+
 
         nombre:
             agente.nombre ||
@@ -438,200 +516,232 @@ async function consultarAgente(
 
 
 // ======================================================
-// FORMULARIO
+// CONTINUAR
 // ======================================================
 
-if (formulario) {
+async function continuar() {
 
-    formulario.addEventListener(
+    ocultarMensaje();
 
-        "submit",
+    ocultarError();
 
-        async event => {
 
-            event.preventDefault();
+    const codigo =
+        codigoAgente.value.trim();
 
 
-            ocultarError();
+    if (!codigo) {
 
+        mostrarMensaje(
+            "warning",
+            "Ingresa el código del agente."
+        );
 
-            const codigo =
-                codigoAgente.value.trim();
 
+        codigoAgente.focus();
 
-            if (!codigo) {
 
-                mostrarError(
-                    "Ingresa tu código de agente."
-                );
+        return;
+    }
 
 
-                codigoAgente.focus();
+    // ---------------------------------------------
+    // BOTÓN
+    // ---------------------------------------------
 
+    btnContinuar.disabled =
+        true;
 
-                return;
-            }
 
+    const textoOriginal =
+        btnContinuar.textContent;
 
-            // ==================================================
-            // BOTÓN
-            // ==================================================
 
-            btnContinuar.disabled =
-                true;
+    btnContinuar.textContent =
+        "CONTINUANDO...";
 
 
-            const textoOriginal =
-                btnContinuar.textContent;
+    try {
 
+        // =================================================
+        // CONSULTA DEL PUNTO
+        // YA COMENZÓ AL ABRIR LA PÁGINA
+        //
+        // AGENTE SE CONSULTA AHORA
+        // =================================================
 
-            btnContinuar.textContent =
-                "CONTINUANDO...";
+        const resultados =
+            await Promise.all([
 
+                promesaPunto,
 
-            try {
+                consultarAgente(
+                    codigo
+                )
 
-                // ==================================================
-                // AGENTE Y PUNTO
-                //
-                // La consulta del punto probablemente
-                // ya estará terminada porque comenzó
-                // al abrir la página.
-                //
-                // La del agente empieza ahora.
-                // ==================================================
+            ]);
 
-                const resultados =
-                    await Promise.all([
 
-                        promesaPunto,
+        const punto =
+            resultados[0];
 
-                        consultarAgente(
-                            codigo
-                        )
 
-                    ]);
+        const agente =
+            resultados[1];
 
 
-                const punto =
-                    resultados[0];
+        // =================================================
+        // CREAR RONDA TEMPORAL
+        // =================================================
 
+        const rondaActual = {
 
-                const agente =
-                    resultados[1];
+            punto: {
 
+                id:
+                    punto.id,
 
-                // ==================================================
-                // CREAR RONDA
-                // ==================================================
 
-                const rondaActual = {
+                codigo:
+                    punto.codigo,
 
-                    punto: {
 
-                        id:
-                            punto.id,
+                nombre:
+                    punto.nombre,
 
-                        codigo:
-                            punto.codigo,
 
-                        nombre:
-                            punto.nombre,
+                latitud:
+                    punto.latitud,
 
-                        latitud:
-                            punto.latitud,
 
-                        longitud:
-                            punto.longitud,
+                longitud:
+                    punto.longitud,
 
-                        radioMetros:
-                            punto.radioMetros
 
-                    },
+                radioMetros:
+                    punto.radioMetros
 
+            },
 
-                    agente: {
 
-                        id:
-                            agente.id,
+            agente: {
 
-                        codigo:
-                            agente.codigo,
+                id:
+                    agente.id,
 
-                        nombre:
-                            agente.nombre
 
-                    },
+                codigo:
+                    agente.codigo,
 
 
-                    inicio:
-                        new Date().toISOString()
+                nombre:
+                    agente.nombre
 
-                };
+            },
 
 
-                // ==================================================
-                // GUARDAR EN SESIÓN
-                // ==================================================
+            inicio:
+                new Date().toISOString()
 
-                sessionStorage.setItem(
+        };
 
-                    "rondaActual",
 
-                    JSON.stringify(
-                        rondaActual
-                    )
+        // =================================================
+        // GUARDAR
+        // =================================================
 
-                );
+        sessionStorage.setItem(
 
+            "rondaActual",
 
-                // ==================================================
-                // IR INMEDIATAMENTE A CÁMARA
-                // ==================================================
+            JSON.stringify(
+                rondaActual
+            )
 
-                window.location.href =
-                    "camara.html";
+        );
 
 
-            } catch (e) {
+        // =================================================
+        // NO HAY ESPERA DE 800ms
+        // =================================================
 
-                console.error(
-                    "Error:",
-                    e
-                );
+        window.location.href =
+            "camara.html";
 
 
-                mostrarError(
-                    e.message ||
-                    "No se pudo continuar."
-                );
+    } catch (
+        errorProceso
+    ) {
 
+        console.error(
+            "ERROR:",
+            errorProceso
+        );
 
-                btnContinuar.disabled =
-                    false;
 
+        mostrarMensaje(
+            "danger",
+            "❌ " +
+            (
+                errorProceso.message ||
+                "No se pudo continuar."
+            )
+        );
 
-                btnContinuar.textContent =
-                    textoOriginal;
 
+        btnContinuar.disabled =
+            false;
 
-                codigoAgente.focus();
-            }
-        }
-    );
+
+        btnContinuar.textContent =
+            textoOriginal;
+
+
+        codigoAgente.focus();
+    }
 }
 
 
 // ======================================================
-// INICIO
+// BOTÓN
+// ======================================================
+
+btnContinuar.addEventListener(
+    "click",
+    continuar
+);
+
+
+// ======================================================
+// ENTER EN EL CAMPO
+// ======================================================
+
+codigoAgente.addEventListener(
+
+    "keydown",
+
+    event => {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            event.preventDefault();
+
+            continuar();
+        }
+    }
+
+);
+
+
+// ======================================================
+// INICIAR
 // ======================================================
 
 if (
     mostrarPuntoInicial()
 ) {
 
-    // Firebase comienza inmediatamente,
-    // pero NO bloquea el formulario.
-
-    iniciarConsultaPunto();
+    iniciarCargaPunto();
 }
