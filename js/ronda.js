@@ -7,23 +7,14 @@ import {
 
 
 // ======================================================
-// ELEMENTOS HTML
+// ELEMENTOS
 // ======================================================
 
-const infoPunto =
-    document.getElementById("infoPunto");
-
-const formulario =
-    document.getElementById("formAgente");
-
-const codigoAgente =
-    document.getElementById("codigoAgente");
-
-const btnContinuar =
-    document.getElementById("btnContinuar");
-
-const error =
-    document.getElementById("error");
+const infoPunto = document.getElementById("infoPunto");
+const formulario = document.getElementById("formAgente");
+const codigoAgente = document.getElementById("codigoAgente");
+const btnContinuar = document.getElementById("btnContinuar");
+const error = document.getElementById("error");
 
 
 // ======================================================
@@ -31,114 +22,238 @@ const error =
 // ======================================================
 
 let puntoActual = null;
-
 let agenteActual = null;
-
 let qrValidado = false;
 
 
 // ======================================================
-// 1. OBTENER DATOS DEL QR DESDE LA URL
-//
-// Ejemplo:
-//
-// ronda.html?punto=P01&token=xxxxxxxx
+// DATOS DEL QR
 // ======================================================
 
 const parametros =
-    new URLSearchParams(
-        window.location.search
-    );
-
+    new URLSearchParams(window.location.search);
 
 const codigoPunto =
     parametros.get("punto");
-
 
 const tokenQR =
     parametros.get("token");
 
 
 // ======================================================
-// 2. MOSTRAR ERROR
+// ERRORES
 // ======================================================
 
 function mostrarError(mensaje) {
 
-    if (error) {
+    if (!error) return;
 
-        error.textContent =
-            mensaje;
+    error.textContent = mensaje;
 
-
-        error.classList.remove(
-            "d-none"
-        );
-    }
+    error.classList.remove("d-none");
 }
 
-
-// ======================================================
-// 3. OCULTAR ERROR
-// ======================================================
 
 function ocultarError() {
 
-    if (error) {
+    if (!error) return;
 
-        error.textContent = "";
+    error.textContent = "";
 
-        error.classList.add(
-            "d-none"
-        );
-    }
+    error.classList.add("d-none");
 }
 
 
 // ======================================================
-// 4. BLOQUEAR FORMULARIO
+// FORMULARIO
 // ======================================================
 
 function bloquearFormulario() {
 
     if (codigoAgente) {
-
-        codigoAgente.disabled =
-            true;
+        codigoAgente.disabled = true;
     }
 
-
     if (btnContinuar) {
-
-        btnContinuar.disabled =
-            true;
+        btnContinuar.disabled = true;
     }
 }
 
-
-// ======================================================
-// 5. HABILITAR FORMULARIO
-// ======================================================
 
 function habilitarFormulario() {
 
     if (codigoAgente) {
-
-        codigoAgente.disabled =
-            false;
+        codigoAgente.disabled = false;
     }
 
-
     if (btnContinuar) {
-
-        btnContinuar.disabled =
-            false;
+        btnContinuar.disabled = false;
     }
 }
 
 
 // ======================================================
-// 6. VALIDAR QR FÍSICO
+// MOSTRAR PUNTO VALIDADO
+// ======================================================
+
+function mostrarPuntoValidado() {
+
+    if (!infoPunto) return;
+
+    infoPunto.innerHTML = `
+
+        ✅ <strong>QR VÁLIDO</strong>
+
+        <br><br>
+
+        📍 <strong>Punto:</strong>
+        ${puntoActual.nombre}
+
+        <br>
+
+        🔲 <strong>Código:</strong>
+        ${puntoActual.codigo}
+
+    `;
+}
+
+
+// ======================================================
+// GUARDAR VALIDACIÓN TEMPORAL
+// ======================================================
+
+function guardarValidacionTemporal() {
+
+    const datos = {
+
+        codigo:
+            puntoActual.codigo,
+
+        token:
+            tokenQR,
+
+        punto:
+            puntoActual,
+
+        tiempo:
+            Date.now()
+
+    };
+
+
+    sessionStorage.setItem(
+        "qrValidadoTemporal",
+        JSON.stringify(datos)
+    );
+}
+
+
+// ======================================================
+// REVISAR VALIDACIÓN TEMPORAL
+//
+// Solo dura 5 minutos.
+// ======================================================
+
+function recuperarValidacionTemporal() {
+
+    try {
+
+        const guardado =
+            sessionStorage.getItem(
+                "qrValidadoTemporal"
+            );
+
+
+        if (!guardado) {
+            return false;
+        }
+
+
+        const datos =
+            JSON.parse(guardado);
+
+
+        // ----------------------------------------------
+        // MÁXIMO 5 MINUTOS
+        // ----------------------------------------------
+
+        const tiempoTranscurrido =
+            Date.now() -
+            datos.tiempo;
+
+
+        const cincoMinutos =
+            5 * 60 * 1000;
+
+
+        if (
+            tiempoTranscurrido >
+            cincoMinutos
+        ) {
+
+            sessionStorage.removeItem(
+                "qrValidadoTemporal"
+            );
+
+            return false;
+        }
+
+
+        // ----------------------------------------------
+        // DEBE SER EXACTAMENTE EL MISMO QR
+        // ----------------------------------------------
+
+        if (
+            datos.codigo !== codigoPunto ||
+            datos.token !== tokenQR
+        ) {
+
+            return false;
+        }
+
+
+        if (!datos.punto) {
+            return false;
+        }
+
+
+        puntoActual =
+            datos.punto;
+
+
+        qrValidado =
+            true;
+
+
+        mostrarPuntoValidado();
+
+        ocultarError();
+
+        habilitarFormulario();
+
+
+        if (codigoAgente) {
+            codigoAgente.focus();
+        }
+
+
+        return true;
+
+
+    } catch (e) {
+
+        sessionStorage.removeItem(
+            "qrValidadoTemporal"
+        );
+
+
+        return false;
+    }
+}
+
+
+// ======================================================
+// VALIDAR QR
 // ======================================================
 
 async function cargarPunto() {
@@ -146,9 +261,29 @@ async function cargarPunto() {
     bloquearFormulario();
 
 
-    // --------------------------------------------------
-    // NO HAY CÓDIGO DEL PUNTO
-    // --------------------------------------------------
+    // ==================================================
+    // MOSTRAR ALGO INMEDIATAMENTE
+    // ==================================================
+
+    if (infoPunto) {
+
+        infoPunto.innerHTML = `
+
+            🔍 <strong>VERIFICANDO PUNTO...</strong>
+
+            <br><br>
+
+            ${codigoPunto
+                ? `📍 ${codigoPunto}`
+                : "Leyendo QR..."}
+
+        `;
+    }
+
+
+    // ==================================================
+    // VALIDACIONES BÁSICAS INMEDIATAS
+    // ==================================================
 
     if (!codigoPunto) {
 
@@ -158,27 +293,18 @@ async function cargarPunto() {
 
                 ❌ <strong>QR NO VÁLIDO</strong>
 
-                <br><br>
-
-                No se encontró el código
-                del punto de control.
-
             `;
         }
 
 
         mostrarError(
-            "Debes escanear el código QR físico del punto."
+            "Debes escanear el QR físico del punto."
         );
 
 
         return;
     }
 
-
-    // --------------------------------------------------
-    // NO HAY TOKEN
-    // --------------------------------------------------
 
     if (!tokenQR) {
 
@@ -190,15 +316,14 @@ async function cargarPunto() {
 
                 <br><br>
 
-                Este enlace no contiene
-                el código de seguridad.
+                Falta el código de seguridad.
 
             `;
         }
 
 
         mostrarError(
-            "Debes escanear el código QR físico del punto."
+            "Debes escanear el QR físico autorizado."
         );
 
 
@@ -206,13 +331,34 @@ async function cargarPunto() {
     }
 
 
+    // ==================================================
+    // COMPROBAR SI YA LO VALIDAMOS
+    // DURANTE ESTA SESIÓN
+    // ==================================================
+
+    if (
+        recuperarValidacionTemporal()
+    ) {
+
+        console.log(
+            "QR recuperado desde sesión."
+        );
+
+        return;
+    }
+
+
+    // ==================================================
+    // CONSULTAR FIRESTORE
+    // ==================================================
+
     try {
 
-        // --------------------------------------------------
-        // BUSCAR PUNTO EN FIREBASE
-        // --------------------------------------------------
+        const inicioConsulta =
+            performance.now();
 
-        const referenciaPunto =
+
+        const referencia =
             doc(
                 db,
                 "puntos",
@@ -220,19 +366,31 @@ async function cargarPunto() {
             );
 
 
-        const documentoPunto =
+        const documento =
             await getDoc(
-                referenciaPunto
+                referencia
             );
 
 
-        // --------------------------------------------------
-        // PUNTO NO EXISTE
-        // --------------------------------------------------
+        const finConsulta =
+            performance.now();
 
-        if (
-            !documentoPunto.exists()
-        ) {
+
+        console.log(
+            "Firestore tardó:",
+            Math.round(
+                finConsulta -
+                inicioConsulta
+            ),
+            "ms"
+        );
+
+
+        // ==================================================
+        // NO EXISTE
+        // ==================================================
+
+        if (!documento.exists()) {
 
             if (infoPunto) {
 
@@ -245,7 +403,7 @@ async function cargarPunto() {
 
 
             mostrarError(
-                "El punto de control no existe."
+                "Este punto de control no existe."
             );
 
 
@@ -254,12 +412,12 @@ async function cargarPunto() {
 
 
         const punto =
-            documentoPunto.data();
+            documento.data();
 
 
-        // --------------------------------------------------
-        // PUNTO DESACTIVADO
-        // --------------------------------------------------
+        // ==================================================
+        // DESACTIVADO
+        // ==================================================
 
         if (
             punto.activo !== true
@@ -288,13 +446,11 @@ async function cargarPunto() {
         }
 
 
-        // --------------------------------------------------
-        // COMPROBAR QUE FIREBASE TIENE TOKEN
-        // --------------------------------------------------
+        // ==================================================
+        // TOKEN NO CONFIGURADO
+        // ==================================================
 
-        if (
-            !punto.qrToken
-        ) {
+        if (!punto.qrToken) {
 
             if (infoPunto) {
 
@@ -302,17 +458,12 @@ async function cargarPunto() {
 
                     ⚠️ <strong>ERROR DE CONFIGURACIÓN</strong>
 
-                    <br><br>
-
-                    Este punto no tiene
-                    un QR de seguridad configurado.
-
                 `;
             }
 
 
             mostrarError(
-                "Comunícate con el administrador."
+                "Este punto no tiene un QR configurado."
             );
 
 
@@ -320,10 +471,9 @@ async function cargarPunto() {
         }
 
 
-        // --------------------------------------------------
-        // COMPARAR TOKEN DEL QR
-        // CON TOKEN DE FIREBASE
-        // --------------------------------------------------
+        // ==================================================
+        // TOKEN INCORRECTO
+        // ==================================================
 
         if (
             tokenQR !==
@@ -338,8 +488,8 @@ async function cargarPunto() {
 
                     <br><br>
 
-                    El código QR no corresponde
-                    a este punto de control.
+                    El código de seguridad
+                    no corresponde a ${codigoPunto}.
 
                 `;
             }
@@ -358,14 +508,10 @@ async function cargarPunto() {
         // QR CORRECTO
         // ==================================================
 
-        qrValidado =
-            true;
-
-
         puntoActual = {
 
             id:
-                documentoPunto.id,
+                documento.id,
 
             codigo:
                 punto.codigo ||
@@ -390,29 +536,15 @@ async function cargarPunto() {
         };
 
 
-        // IMPORTANTE:
-        // NO guardamos qrToken en sessionStorage.
+        qrValidado =
+            true;
 
 
-        if (infoPunto) {
+        // Guardamos temporalmente.
+        guardarValidacionTemporal();
 
-            infoPunto.innerHTML = `
 
-                ✅ <strong>QR VÁLIDO</strong>
-
-                <br><br>
-
-                📍 <strong>Punto:</strong>
-                ${puntoActual.nombre}
-
-                <br>
-
-                🔲 <strong>Código:</strong>
-                ${puntoActual.codigo}
-
-            `;
-        }
-
+        mostrarPuntoValidado();
 
         ocultarError();
 
@@ -425,13 +557,11 @@ async function cargarPunto() {
         }
 
 
-    } catch (
-        errorFirebase
-    ) {
+    } catch (e) {
 
         console.error(
-            "Error cargando punto:",
-            errorFirebase
+            "Error verificando QR:",
+            e
         );
 
 
@@ -446,19 +576,17 @@ async function cargarPunto() {
 
 
         mostrarError(
-            "No se pudo verificar el código QR. Inténtalo nuevamente."
+            "No se pudo verificar el punto. Revisa tu conexión e inténtalo nuevamente."
         );
     }
 }
 
 
 // ======================================================
-// 7. IDENTIFICAR AGENTE
+// VALIDAR AGENTE
 // ======================================================
 
-async function identificarAgente(
-    codigo
-) {
+async function identificarAgente(codigo) {
 
     const codigoLimpio =
         String(codigo).trim();
@@ -472,7 +600,7 @@ async function identificarAgente(
     }
 
 
-    const referenciaAgente =
+    const referencia =
         doc(
             db,
             "agentes",
@@ -480,15 +608,13 @@ async function identificarAgente(
         );
 
 
-    const documentoAgente =
+    const documento =
         await getDoc(
-            referenciaAgente
+            referencia
         );
 
 
-    if (
-        !documentoAgente.exists()
-    ) {
+    if (!documento.exists()) {
 
         throw new Error(
             "El código de agente no existe."
@@ -497,7 +623,7 @@ async function identificarAgente(
 
 
     const agente =
-        documentoAgente.data();
+        documento.data();
 
 
     if (
@@ -513,7 +639,7 @@ async function identificarAgente(
     agenteActual = {
 
         id:
-            documentoAgente.id,
+            documento.id,
 
         codigo:
             agente.codigo ||
@@ -531,7 +657,7 @@ async function identificarAgente(
 
 
 // ======================================================
-// 8. FORMULARIO
+// FORMULARIO DEL AGENTE
 // ======================================================
 
 if (formulario) {
@@ -547,9 +673,9 @@ if (formulario) {
             ocultarError();
 
 
-            // ------------------------------------------
-            // COMPROBAR NUEVAMENTE QR
-            // ------------------------------------------
+            // ==================================================
+            // QR DEBE ESTAR VALIDADO
+            // ==================================================
 
             if (
                 qrValidado !== true ||
@@ -557,9 +683,8 @@ if (formulario) {
             ) {
 
                 mostrarError(
-                    "El QR del punto no ha sido validado."
+                    "Primero debes escanear un QR válido."
                 );
-
 
                 return;
             }
@@ -575,16 +700,15 @@ if (formulario) {
                     "Ingresa tu código de agente."
                 );
 
-
                 codigoAgente.focus();
 
                 return;
             }
 
 
-            // ------------------------------------------
-            // BLOQUEAR BOTÓN MIENTRAS CONSULTAMOS
-            // ------------------------------------------
+            // ==================================================
+            // BOTÓN
+            // ==================================================
 
             btnContinuar.disabled =
                 true;
@@ -600,18 +724,18 @@ if (formulario) {
 
             try {
 
-                // ------------------------------------------
-                // VALIDAR AGENTE
-                // ------------------------------------------
+                // ==================================================
+                // CONSULTAR AGENTE
+                // ==================================================
 
                 await identificarAgente(
                     codigo
                 );
 
 
-                // ------------------------------------------
-                // CREAR DATOS PARA LA SIGUIENTE PANTALLA
-                // ------------------------------------------
+                // ==================================================
+                // CREAR RONDA
+                // ==================================================
 
                 const rondaActual = {
 
@@ -665,9 +789,9 @@ if (formulario) {
                 };
 
 
-                // ------------------------------------------
-                // GUARDAR TEMPORALMENTE
-                // ------------------------------------------
+                // ==================================================
+                // GUARDAR RONDA
+                // ==================================================
 
                 sessionStorage.setItem(
 
@@ -680,25 +804,24 @@ if (formulario) {
                 );
 
 
-                // ------------------------------------------
+                // ==================================================
                 // IR A CÁMARA
-                // ------------------------------------------
+                // ==================================================
 
                 window.location.href =
                     "camara.html";
 
 
-            } catch (
-                errorAgente
-            ) {
+            } catch (e) {
 
                 console.error(
-                    errorAgente
+                    "Error agente:",
+                    e
                 );
 
 
                 mostrarError(
-                    errorAgente.message ||
+                    e.message ||
                     "No se pudo verificar el agente."
                 );
 
@@ -719,7 +842,7 @@ if (formulario) {
 
 
 // ======================================================
-// 9. INICIAR
+// INICIAR
 // ======================================================
 
 cargarPunto();
