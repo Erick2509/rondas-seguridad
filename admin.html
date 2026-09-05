@@ -43,7 +43,7 @@
         }
 
         header p {
-            margin: 5px 0 0;
+            margin: 6px 0 0;
             color: #6b7280;
         }
 
@@ -61,13 +61,13 @@
         }
 
         .menu button {
-            border: none;
+            border: 0;
             background: white;
             padding: 12px 18px;
             border-radius: 9px;
             cursor: pointer;
             font-weight: bold;
-            box-shadow: 0 2px 7px rgba(0,0,0,0.07);
+            box-shadow: 0 2px 7px rgba(0,0,0,.07);
         }
 
         .menu button.activo {
@@ -88,14 +88,14 @@
             grid-template-columns:
                 repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
-            margin-bottom: 25px;
         }
 
         .tarjeta {
             background: white;
             padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0,0,0,.08);
+            margin-bottom: 20px;
         }
 
         .etiqueta {
@@ -106,7 +106,7 @@
         .numero {
             font-size: 32px;
             font-weight: bold;
-            margin-top: 5px;
+            margin-top: 6px;
         }
 
         .barra {
@@ -131,16 +131,19 @@
             margin-bottom: 6px;
         }
 
+        button {
+            cursor: pointer;
+        }
+
         .btn-principal {
             width: 100%;
             padding: 13px;
             margin-top: 20px;
-            border: none;
+            border: 0;
             border-radius: 8px;
             background: #0d6efd;
             color: white;
             font-weight: bold;
-            cursor: pointer;
         }
 
         .btn-principal:disabled {
@@ -150,45 +153,10 @@
 
         .btn-actualizar {
             margin-top: 10px;
-            border: none;
+            border: 0;
             border-radius: 8px;
             padding: 10px 16px;
-            cursor: pointer;
             font-weight: bold;
-        }
-
-        .ronda {
-            background: white;
-            border-radius: 12px;
-            padding: 18px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 7px rgba(0,0,0,.07);
-        }
-
-        .ronda-superior {
-            display: flex;
-            justify-content: space-between;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .agente {
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .estado {
-            background: #d1fae5;
-            color: #065f46;
-            padding: 6px 10px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 13px;
-        }
-
-        .detalle {
-            margin-top: 10px;
-            line-height: 1.8;
         }
 
         .error {
@@ -214,9 +182,42 @@
             color: #666;
         }
 
+        .ronda {
+            background: white;
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 7px rgba(0,0,0,.07);
+        }
+
+        .ronda-superior {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .agente {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .estado {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .detalle {
+            margin-top: 10px;
+            line-height: 1.8;
+        }
+
         .qr-panel {
             max-width: 700px;
-            margin-bottom: 25px;
         }
 
         .qr-resultado {
@@ -254,8 +255,15 @@
             justify-content: center;
         }
 
+        .qr-margen {
+            background: #fff;
+            padding: 24px;
+            display: inline-block;
+            line-height: 0;
+        }
+
         .qr-url {
-            max-width: 300px;
+            max-width: 330px;
             font-size: 11px;
             color: #666;
             word-break: break-all;
@@ -266,24 +274,22 @@
             width: 100%;
             margin-top: 15px;
             padding: 12px;
-            border: none;
+            border: 0;
             border-radius: 8px;
             background: #198754;
             color: white;
             font-weight: bold;
-            cursor: pointer;
         }
 
         .btn-imprimir {
             width: 100%;
             margin-top: 10px;
             padding: 12px;
-            border: none;
+            border: 0;
             border-radius: 8px;
             background: #212529;
             color: white;
             font-weight: bold;
-            cursor: pointer;
         }
 
         .historial-qr {
@@ -302,8 +308,8 @@
             display: flex;
             justify-content: space-between;
             gap: 15px;
-            flex-wrap: wrap;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .punto-codigo {
@@ -317,19 +323,9 @@
         }
 
         .punto-fecha {
-            font-size: 13px;
             color: #777;
+            font-size: 13px;
             margin-top: 7px;
-        }
-
-        .btn-ver-qr {
-            border: none;
-            border-radius: 8px;
-            background: #0d6efd;
-            color: white;
-            padding: 9px 13px;
-            cursor: pointer;
-            font-weight: bold;
         }
 
         .activo-punto {
@@ -343,7 +339,16 @@
             font-weight: bold;
         }
 
-        @media (max-width: 600px) {
+        .btn-ver-qr {
+            border: 0;
+            border-radius: 8px;
+            background: #0d6efd;
+            color: white;
+            padding: 10px 14px;
+            font-weight: bold;
+        }
+
+        @media (max-width:600px) {
 
             .contenedor {
                 padding: 12px;
@@ -377,9 +382,13 @@
 
     <div class="header-contenido">
 
-        <h1>🛡️ Panel de Administración</h1>
+        <h1>
+            🛡️ Panel de Administración
+        </h1>
 
-        <p>Sistema de rondas de seguridad</p>
+        <p>
+            Sistema de rondas de seguridad
+        </p>
 
     </div>
 
@@ -502,7 +511,10 @@
         class="seccion"
     >
 
-        <h2>📋 Historial de rondas</h2>
+        <h2>
+            📋 Historial de rondas
+        </h2>
+
 
         <div class="barra">
 
@@ -549,6 +561,7 @@
         class="seccion"
     >
 
+
         <div class="tarjeta qr-panel">
 
             <h2>
@@ -557,7 +570,7 @@
 
             <p>
                 Cada código de punto es único.
-                No podrás registrar dos veces el mismo código.
+                Un código existente no podrá registrarse nuevamente.
             </p>
 
 
@@ -605,6 +618,7 @@
                 class="qr-resultado"
             >
 
+
                 <div
                     id="areaQR"
                     class="area-qr"
@@ -614,17 +628,21 @@
                         🛡️ RONDA DE SEGURIDAD
                     </div>
 
+
                     <div
                         id="qrNombreVisual"
                         class="qr-nombre"
                     ></div>
+
 
                     <div
                         id="qrCodigoVisual"
                         class="qr-codigo"
                     ></div>
 
+
                     <div id="codigoQR"></div>
+
 
                     <div
                         id="qrUrl"
@@ -656,7 +674,7 @@
         </div>
 
 
-        <!-- HISTORIAL QR -->
+        <!-- HISTORIAL -->
 
         <div class="historial-qr">
 
@@ -672,6 +690,7 @@
                     type="search"
                     placeholder="Buscar P01, P02, Cochera..."
                 >
+
 
                 <button
                     id="btnActualizarPuntos"
@@ -695,6 +714,7 @@
             <div id="listaPuntos"></div>
 
         </div>
+
 
     </section>
 

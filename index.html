@@ -37,12 +37,17 @@
             border-radius: 12px;
         }
 
+        #lectorQR video {
+            width: 100% !important;
+            border-radius: 12px;
+        }
+
         .estado {
             margin-top: 15px;
         }
 
         .oculto {
-            display: none;
+            display: none !important;
         }
 
         .scanner-info {
@@ -63,7 +68,7 @@
 
     <div
         class="card shadow-sm mx-auto"
-        style="max-width: 500px;"
+        style="max-width:500px;"
     >
 
         <div class="card-body text-center p-4">
@@ -95,8 +100,6 @@
             </div>
 
 
-            <!-- BOTÓN ESCANEAR -->
-
             <button
                 id="btnEscanear"
                 type="button"
@@ -105,8 +108,6 @@
                 📷 ESCANEAR QR
             </button>
 
-
-            <!-- BOTÓN DETENER -->
 
             <button
                 id="btnDetener"
@@ -117,12 +118,8 @@
             </button>
 
 
-            <!-- LECTOR -->
-
             <div id="lectorQR"></div>
 
-
-            <!-- MENSAJE -->
 
             <div
                 id="mensaje"
@@ -132,8 +129,8 @@
 
             <div class="scanner-info">
 
-                El QR debe pertenecer al sistema
-                de Rondas de Seguridad.
+                Mantén el código QR completamente
+                visible dentro de la cámara.
 
             </div>
 
@@ -145,27 +142,31 @@
 </div>
 
 
-<!-- LIBRERÍA QR -->
-
 <script
-    src="https://unpkg.com/html5-qrcode"
+    src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
 ></script>
 
 
 <script>
 
-    // ==============================================
+    // ==================================================
     // ELEMENTOS
-    // ==============================================
+    // ==================================================
 
     const btnEscanear =
-        document.getElementById("btnEscanear");
+        document.getElementById(
+            "btnEscanear"
+        );
 
     const btnDetener =
-        document.getElementById("btnDetener");
+        document.getElementById(
+            "btnDetener"
+        );
 
     const mensaje =
-        document.getElementById("mensaje");
+        document.getElementById(
+            "mensaje"
+        );
 
 
     let lector = null;
@@ -175,14 +176,20 @@
     let procesandoQR = false;
 
 
-    // ==============================================
+    // ==================================================
     // MENSAJES
-    // ==============================================
+    // ==================================================
 
-    function mostrarMensaje(tipo, texto) {
+    function mostrarMensaje(
+        tipo,
+        texto
+    ) {
 
         mensaje.className =
-            "alert alert-" + tipo + " estado";
+            "alert alert-" +
+            tipo +
+            " estado";
+
 
         mensaje.textContent =
             texto;
@@ -199,112 +206,110 @@
     }
 
 
-    // ==============================================
+    // ==================================================
     // VALIDAR QR
-    // ==============================================
+    // ==================================================
 
-    function validarQR(textoQR) {
+    function validarQR(
+        textoQR
+    ) {
+
+        let url;
+
 
         try {
 
-            const url =
-                new URL(textoQR);
-
-
-            // --------------------------------------
-            // 1. EL QR DEBE SER DE NUESTRA WEB
-            // --------------------------------------
-
-            if (
-                url.origin !==
-                window.location.origin
-            ) {
-
-                throw new Error(
-                    "Este QR no pertenece al sistema."
+            url =
+                new URL(
+                    textoQR
                 );
-            }
-
-
-            // --------------------------------------
-            // 2. DEBE ABRIR ronda.html
-            // --------------------------------------
-
-            if (
-                !url.pathname.endsWith(
-                    "/ronda.html"
-                )
-            ) {
-
-                throw new Error(
-                    "Este QR no es un punto de ronda válido."
-                );
-            }
-
-
-            // --------------------------------------
-            // 3. OBTENER PUNTO
-            // --------------------------------------
-
-            const punto =
-                url.searchParams.get(
-                    "punto"
-                );
-
-
-            if (!punto) {
-
-                throw new Error(
-                    "El QR no contiene un código de punto."
-                );
-            }
-
-
-            const codigo =
-                punto
-                    .trim()
-                    .toUpperCase();
-
-
-            // --------------------------------------
-            // 4. VALIDAR FORMATO
-            //
-            // P01
-            // P02
-            // P100
-            // etc.
-            // --------------------------------------
-
-            const formato =
-                /^P\d+$/;
-
-
-            if (
-                !formato.test(codigo)
-            ) {
-
-                throw new Error(
-                    "El código del punto no es válido."
-                );
-            }
-
-
-            return codigo;
-
 
         } catch (error) {
 
             throw new Error(
-                error.message ||
-                "Código QR no válido."
+                "El contenido leído no es un QR válido del sistema."
             );
         }
+
+
+        // ==============================================
+        // MISMO DOMINIO
+        // ==============================================
+
+        if (
+            url.origin !==
+            window.location.origin
+        ) {
+
+            throw new Error(
+                "Este QR no pertenece al sistema de rondas."
+            );
+        }
+
+
+        // ==============================================
+        // DEBE APUNTAR A ronda.html
+        // ==============================================
+
+        if (
+            !url.pathname.endsWith(
+                "/ronda.html"
+            )
+        ) {
+
+            throw new Error(
+                "Este QR no corresponde a un punto de ronda."
+            );
+        }
+
+
+        // ==============================================
+        // OBTENER PUNTO
+        // ==============================================
+
+        const punto =
+            url.searchParams.get(
+                "punto"
+            );
+
+
+        if (!punto) {
+
+            throw new Error(
+                "El QR no contiene el código del punto."
+            );
+        }
+
+
+        const codigo =
+            punto
+                .trim()
+                .toUpperCase();
+
+
+        // ==============================================
+        // P01 / P02 / P03...
+        // ==============================================
+
+        if (
+            !/^P\d+$/.test(
+                codigo
+            )
+        ) {
+
+            throw new Error(
+                "El código del punto no tiene un formato válido."
+            );
+        }
+
+
+        return codigo;
     }
 
 
-    // ==============================================
+    // ==================================================
     // QR DETECTADO
-    // ==============================================
+    // ==================================================
 
     async function qrDetectado(
         textoQR
@@ -316,7 +321,8 @@
         }
 
 
-        procesandoQR = true;
+        procesandoQR =
+            true;
 
 
         try {
@@ -334,32 +340,18 @@
             );
 
 
-            // --------------------------------------
-            // DETENER CÁMARA
-            // --------------------------------------
-
             await detenerScanner();
 
 
-            // --------------------------------------
-            // REDIRECCIONAR
-            //
-            // ronda.html hará la validación real
-            // contra Firebase.
-            // --------------------------------------
+            // ==========================================
+            // ENVIAR A LA VALIDACIÓN DEL PUNTO
+            // ==========================================
 
-            setTimeout(
-                function () {
-
-                    window.location.href =
-                        "ronda.html?punto=" +
-                        encodeURIComponent(
-                            codigoPunto
-                        );
-
-                },
-                400
-            );
+            window.location.href =
+                "ronda.html?punto=" +
+                encodeURIComponent(
+                    codigoPunto
+                );
 
 
         } catch (error) {
@@ -370,8 +362,6 @@
                 error.message
             );
 
-
-            // Permitir intentar otro QR
 
             setTimeout(
                 function () {
@@ -386,9 +376,9 @@
     }
 
 
-    // ==============================================
-    // INICIAR ESCÁNER
-    // ==============================================
+    // ==================================================
+    // INICIAR CÁMARA
+    // ==================================================
 
     async function iniciarScanner() {
 
@@ -415,28 +405,82 @@
         }
 
 
-        lector =
-            new Html5Qrcode(
-                "lectorQR"
-            );
-
-
         try {
+
+            lector =
+                new Html5Qrcode(
+                    "lectorQR"
+                );
+
+
+            // ==========================================
+            // OBTENER CÁMARAS
+            // ==========================================
+
+            const camaras =
+                await Html5Qrcode.getCameras();
+
+
+            if (
+                !camaras ||
+                camaras.length === 0
+            ) {
+
+                throw new Error(
+                    "No se encontró ninguna cámara."
+                );
+            }
+
+
+            // ==========================================
+            // BUSCAR CÁMARA TRASERA
+            // ==========================================
+
+            let camaraSeleccionada =
+                camaras[0].id;
+
+
+            for (
+                const camara
+                of camaras
+            ) {
+
+                const nombre =
+                    (
+                        camara.label ||
+                        ""
+                    )
+                        .toLowerCase();
+
+
+                if (
+                    nombre.includes("back") ||
+                    nombre.includes("rear") ||
+                    nombre.includes("trasera") ||
+                    nombre.includes("environment")
+                ) {
+
+                    camaraSeleccionada =
+                        camara.id;
+
+                    break;
+                }
+            }
+
+
+            // ==========================================
+            // INICIAR LECTOR
+            // ==========================================
 
             await lector.start(
 
-                {
-                    facingMode:
-                        "environment"
-                },
+                camaraSeleccionada,
 
                 {
-                    fps: 10,
+                    fps: 15,
 
-                    qrbox: {
-                        width: 250,
-                        height: 250
-                    }
+                    disableFlip:
+                        false
                 },
 
                 function (
@@ -450,8 +494,7 @@
 
                 function () {
 
-                    // Ignoramos errores normales
-                    // mientras busca un QR.
+                    // Normal mientras busca QR.
 
                 }
 
@@ -460,6 +503,10 @@
 
             escaneando =
                 true;
+
+
+            procesandoQR =
+                false;
 
 
             btnEscanear.classList.add(
@@ -474,33 +521,41 @@
 
             mostrarMensaje(
                 "info",
-                "📷 Cámara activa. Apunta al código QR."
+                "📷 Cámara activa. Coloca el QR completo frente a la cámara."
             );
 
 
         } catch (error) {
 
             console.error(
-                "Error cámara:",
+                "Error iniciando cámara:",
                 error
             );
 
 
             mostrarMensaje(
                 "danger",
-                "No se pudo abrir la cámara. Revisa los permisos."
+                "No se pudo abrir la cámara. " +
+                (
+                    error.message ||
+                    "Revisa los permisos."
+                )
             );
 
 
             lector =
                 null;
+
+
+            escaneando =
+                false;
         }
     }
 
 
-    // ==============================================
-    // DETENER ESCÁNER
-    // ==============================================
+    // ==================================================
+    // DETENER
+    // ==================================================
 
     async function detenerScanner() {
 
@@ -516,7 +571,7 @@
             } catch (error) {
 
                 console.log(
-                    "Scanner detenido."
+                    "La cámara ya estaba detenida."
                 );
             }
 
@@ -549,9 +604,9 @@
     }
 
 
-    // ==============================================
-    // BOTONES
-    // ==============================================
+    // ==================================================
+    // EVENTOS
+    // ==================================================
 
     btnEscanear.addEventListener(
         "click",
@@ -565,14 +620,18 @@
 
             await detenerScanner();
 
+            procesandoQR =
+                false;
+
+
             limpiarMensaje();
         }
     );
 
 
-    // ==============================================
+    // ==================================================
     // CERRAR CÁMARA AL SALIR
-    // ==============================================
+    // ==================================================
 
     window.addEventListener(
         "beforeunload",
