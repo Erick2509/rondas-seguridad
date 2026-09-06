@@ -382,6 +382,14 @@ function horaFinRonda(ronda) {
     return f ? f.toLocaleTimeString("es-PE") : "-";
 }
 
+function horaCancelacionRonda(ronda) {
+    const f =
+        fechaDesdeValor(ronda.cancelacionTimestamp) ||
+        fechaDesdeValor(ronda.horaCancelacionLocal);
+
+    return f ? f.toLocaleTimeString("es-PE") : "-";
+}
+
 function duracionTexto(segundos) {
     const total = Number(segundos);
 
@@ -966,6 +974,14 @@ function mostrarRondas(
                 estado.textContent =
                     "🟡 EN CURSO";
 
+            } else if (
+                ronda.estado ===
+                "INCOMPLETA"
+            ) {
+
+                estado.textContent =
+                    "🔴 INCOMPLETA";
+
             } else {
 
                 estado.textContent =
@@ -1029,27 +1045,41 @@ function mostrarRondas(
                 )
             );
 
-            agregarLinea(
-                detalle,
-                "🔴 Final: ",
-                ronda.estado ===
-                    "COMPLETADA"
-                    ? horaFinRonda(
-                        ronda
-                    )
-                    : "-"
-            );
+            if (ronda.estado === "INCOMPLETA") {
+                agregarLinea(
+                    detalle,
+                    "⛔ Cancelada: ",
+                    horaCancelacionRonda(ronda)
+                );
 
-            agregarLinea(
-                detalle,
-                "⏱️ Duración: ",
-                ronda.estado ===
-                    "COMPLETADA"
-                    ? duracionTexto(
-                        ronda.duracionSegundos
-                    )
-                    : "En curso"
-            );
+                agregarLinea(
+                    detalle,
+                    "⏱️ Duración: ",
+                    duracionTexto(ronda.duracionSegundos)
+                );
+
+                agregarLinea(
+                    detalle,
+                    "📝 Motivo: ",
+                    ronda.motivoCancelacion || "Sin motivo"
+                );
+            } else {
+                agregarLinea(
+                    detalle,
+                    "🔴 Final: ",
+                    ronda.estado === "COMPLETADA"
+                        ? horaFinRonda(ronda)
+                        : "-"
+                );
+
+                agregarLinea(
+                    detalle,
+                    "⏱️ Duración: ",
+                    ronda.estado === "COMPLETADA"
+                        ? duracionTexto(ronda.duracionSegundos)
+                        : "En curso"
+                );
+            }
 
             agregarLinea(
                 detalle,
@@ -1063,6 +1093,16 @@ function mostrarRondas(
                         0
                     )
             );
+
+            if (ronda.estado === "INCOMPLETA") {
+                const aviso = document.createElement("div");
+                aviso.className = "alert alert-danger mt-3 mb-0";
+                aviso.innerHTML =
+                    "<strong>⚠️ Recorrido no completado</strong><br>" +
+                    "Último QR validado: " +
+                    (ronda.ultimoPuntoCodigo || "Ninguno");
+                detalle.appendChild(aviso);
+            }
 
             detalle.appendChild(
                 crearBloqueValidaciones(
@@ -1138,6 +1178,8 @@ function filtrarRondas() {
                         ronda.agenteTurno,
                         ronda.tipoRonda,
                         ronda.estado,
+                        ronda.motivoCancelacion,
+                        horaCancelacionRonda(ronda),
                         fechaRonda(ronda),
                         ronda.puntoNombre,
                         ronda.puntoCodigo,
