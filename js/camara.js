@@ -112,7 +112,9 @@ function cargarDatos() {
     }
 
 
-    // Compatibilidad con agentes antiguos
+    // ==================================================
+    // COMPATIBILIDAD CON AGENTES ANTIGUOS
+    // ==================================================
 
     datosRonda.agente.cargo =
         datosRonda.agente.cargo ||
@@ -124,7 +126,7 @@ function cargarDatos() {
 
 
     // ==================================================
-    // INFORMACIÓN MOSTRADA ANTES DE LA FOTO
+    // INFORMACIÓN MOSTRADA EN CAMARA.HTML
     // ==================================================
 
     informacion.innerHTML = `
@@ -165,7 +167,7 @@ function cargarDatos() {
 
 
 // ======================================================
-// 2. GPS
+// 2. INICIAR GPS
 // ======================================================
 
 function iniciarGPS() {
@@ -341,7 +343,8 @@ async function obtenerDireccion(
 
 
         const numero =
-            a.house_number || "";
+            a.house_number ||
+            "";
 
 
         const zona =
@@ -368,10 +371,12 @@ async function obtenerDireccion(
 
 
         const pais =
-            a.country || "";
+            a.country ||
+            "";
 
 
-        const partes = [];
+        const partes =
+            [];
 
 
         if (calle) {
@@ -384,7 +389,9 @@ async function obtenerDireccion(
 
             } else {
 
-                partes.push(calle);
+                partes.push(
+                    calle
+                );
             }
         }
 
@@ -394,7 +401,9 @@ async function obtenerDireccion(
             !partes.includes(zona)
         ) {
 
-            partes.push(zona);
+            partes.push(
+                zona
+            );
         }
 
 
@@ -403,7 +412,9 @@ async function obtenerDireccion(
             !partes.includes(ciudad)
         ) {
 
-            partes.push(ciudad);
+            partes.push(
+                ciudad
+            );
         }
 
 
@@ -412,7 +423,9 @@ async function obtenerDireccion(
             !partes.includes(region)
         ) {
 
-            partes.push(region);
+            partes.push(
+                region
+            );
         }
 
 
@@ -421,17 +434,25 @@ async function obtenerDireccion(
             !partes.includes(pais)
         ) {
 
-            partes.push(pais);
+            partes.push(
+                pais
+            );
         }
 
 
-        if (partes.length > 0) {
+        if (
+            partes.length > 0
+        ) {
 
-            return partes.join(", ");
+            return partes.join(
+                ", "
+            );
         }
 
 
-        if (datos.display_name) {
+        if (
+            datos.display_name
+        ) {
 
             return datos.display_name;
         }
@@ -454,7 +475,7 @@ async function obtenerDireccion(
 
 
 // ======================================================
-// 4. TOMAR FOTOGRAFÍA
+// 4. SELECCIONAR / TOMAR FOTOGRAFÍA
 // ======================================================
 
 fotoInput.addEventListener(
@@ -485,14 +506,22 @@ async function manejarFoto(event) {
 
         <br>
 
-        Preparando evidencia.
+        Preparando evidencia...
 
     `;
 
 
+    // ==================================================
+    // GUARDAR FECHA Y HORA EXACTA DE LA FOTO
+    // ==================================================
+
     fechaFoto =
         new Date();
 
+
+    // ==================================================
+    // OBTENER DIRECCIÓN
+    // ==================================================
 
     if (ubicacionActual) {
 
@@ -511,19 +540,23 @@ async function manejarFoto(event) {
     }
 
 
+    // ==================================================
+    // LEER FOTO
+    // ==================================================
+
     const lector =
         new FileReader();
 
 
     lector.onload =
-        function(e) {
+        function (e) {
 
             const imagen =
                 new Image();
 
 
             imagen.onload =
-                function() {
+                function () {
 
                     generarImagenFinal(
                         imagen
@@ -543,7 +576,7 @@ async function manejarFoto(event) {
 
 
 // ======================================================
-// 5. DIVIDIR TEXTO
+// 5. ESCRIBIR TEXTO EN VARIAS LÍNEAS
 // ======================================================
 
 function escribirTextoEnLineas(
@@ -556,12 +589,16 @@ function escribirTextoEnLineas(
 ) {
 
     const palabras =
-        String(texto).split(" ");
+        String(texto)
+            .split(" ");
 
 
-    let linea = "";
+    let linea =
+        "";
 
-    let posicionY = y;
+
+    let posicionY =
+        y;
 
 
     for (
@@ -623,7 +660,7 @@ function escribirTextoEnLineas(
 
 
 // ======================================================
-// 6. GENERAR FOTO FINAL
+// 6. GENERAR IMAGEN FINAL
 // ======================================================
 
 function generarImagenFinal(imagen) {
@@ -635,14 +672,23 @@ function generarImagenFinal(imagen) {
     let ancho =
         imagen.width;
 
+
     let alto =
         imagen.height;
 
 
-    if (ancho > anchoMaximo) {
+    // ==================================================
+    // REDUCIR FOTO SI ES MUY GRANDE
+    // ==================================================
+
+    if (
+        ancho >
+        anchoMaximo
+    ) {
 
         const proporcion =
-            anchoMaximo / ancho;
+            anchoMaximo /
+            ancho;
 
 
         ancho =
@@ -650,35 +696,44 @@ function generarImagenFinal(imagen) {
 
 
         alto =
-            alto * proporcion;
+            alto *
+            proporcion;
     }
 
 
-    // Más espacio para:
-    // nombre
-    // cargo
-    // turno
-    // punto
-    // fecha/hora
-    // ubicación
+    // ==================================================
+    // ESPACIO INFERIOR PARA LA MARCA DE AGUA
+    //
+    // Nombre
+    // Cargo
+    // Turno
+    // Punto
+    // Fecha
+    // Hora
+    // Ubicación
+    // ==================================================
 
     const alturaInfo =
-        430;
+        480;
 
 
     canvas.width =
         ancho;
 
+
     canvas.height =
-        alto + alturaInfo;
+        alto +
+        alturaInfo;
 
 
     const ctx =
-        canvas.getContext("2d");
+        canvas.getContext(
+            "2d"
+        );
 
 
     // ==================================================
-    // FOTO
+    // DIBUJAR FOTOGRAFÍA
     // ==================================================
 
     ctx.drawImage(
@@ -706,6 +761,10 @@ function generarImagenFinal(imagen) {
     );
 
 
+    // ==================================================
+    // TEXTO BLANCO
+    // ==================================================
+
     ctx.fillStyle =
         "#ffffff";
 
@@ -724,6 +783,10 @@ function generarImagenFinal(imagen) {
         alto + 45
     );
 
+
+    // ==================================================
+    // DATOS
+    // ==================================================
 
     ctx.font =
         "22px Arial";
@@ -774,7 +837,7 @@ function generarImagenFinal(imagen) {
 
 
     // ==================================================
-    // FECHA Y HORA
+    // FECHA
     // ==================================================
 
     const fecha =
@@ -790,19 +853,26 @@ function generarImagenFinal(imagen) {
 
 
     ctx.fillText(
-        `📅 ${fecha}   🕐 ${hora}`,
+        `📅 Fecha: ${fecha}`,
         30,
         alto + 250
     );
 
 
     // ==================================================
-    // UBICACIÓN
+    // HORA
     // ==================================================
 
-    ctx.font =
-        "22px Arial";
+    ctx.fillText(
+        `🕐 Hora: ${hora}`,
+        30,
+        alto + 290
+    );
 
+
+    // ==================================================
+    // UBICACIÓN
+    // ==================================================
 
     escribirTextoEnLineas(
 
@@ -812,7 +882,7 @@ function generarImagenFinal(imagen) {
 
         30,
 
-        alto + 295,
+        alto + 335,
 
         ancho - 60,
 
@@ -821,7 +891,7 @@ function generarImagenFinal(imagen) {
 
 
     // ==================================================
-    // GENERAR JPG
+    // CONVERTIR A JPG
     // ==================================================
 
     canvas.toBlob(
@@ -860,6 +930,14 @@ function generarImagenFinal(imagen) {
                 <br>
 
                 📍 ${datosRonda.punto.nombre}
+
+                <br>
+
+                📅 Fecha: ${fecha}
+
+                <br>
+
+                🕐 Hora: ${hora}
 
                 <br>
 
@@ -947,7 +1025,7 @@ async function registrarRonda() {
 
 
             // ==========================================
-            // FECHA / HORA
+            // FECHA Y HORA
             // ==========================================
 
             fecha:
@@ -984,22 +1062,33 @@ async function registrarRonda() {
 
 
             // ==========================================
-            // VALIDACIÓN
+            // QR
             // ==========================================
 
             qrValidado:
                 true,
 
+
             metodoValidacion:
                 "QR_FISICO",
 
+
+            // ==========================================
+            // ESTADO
+            // ==========================================
+
             estado:
                 "completada",
+
 
             timestamp:
                 serverTimestamp()
         };
 
+
+        // ==================================================
+        // GUARDAR EN FIRESTORE
+        // ==================================================
 
         await addDoc(
 
@@ -1016,7 +1105,9 @@ async function registrarRonda() {
             true;
 
 
-        // Detener GPS
+        // ==================================================
+        // DETENER GPS
+        // ==================================================
 
         if (
             gpsWatchId !== null
@@ -1032,6 +1123,10 @@ async function registrarRonda() {
                 null;
         }
 
+
+        // ==================================================
+        // MENSAJE DE ÉXITO
+        // ==================================================
 
         estado.className =
             "alert alert-success mt-3";
@@ -1059,7 +1154,25 @@ async function registrarRonda() {
 
             <br>
 
+            📅 Fecha:
+            ${fechaRegistro.toLocaleDateString("es-PE")}
+
+            <br>
+
+            🕐 Hora:
+            ${fechaRegistro.toLocaleTimeString("es-PE")}
+
+            <br>
+
             📌 ${direccionActual}
+
+            <br><br>
+
+            📱 QR físico: VALIDADO
+
+            <br>
+
+            📸 Evidencia registrada
 
         `;
 
@@ -1077,6 +1190,7 @@ async function registrarRonda() {
     } catch (errorFirebase) {
 
         console.error(
+            "Error registrando ronda:",
             errorFirebase
         );
 
@@ -1098,7 +1212,7 @@ async function registrarRonda() {
 
 
 // ======================================================
-// 8. COMPARTIR EN WHATSAPP
+// 8. COMPARTIR
 // ======================================================
 
 btnCompartir.addEventListener(
@@ -1132,7 +1246,7 @@ async function compartirWhatsApp() {
 
 
     // ==================================================
-    // MENSAJE
+    // MENSAJE PARA WHATSAPP
     // ==================================================
 
     const mensaje =
@@ -1142,12 +1256,16 @@ async function compartirWhatsApp() {
 🦺 ${datosRonda.agente.cargo}
 🕐 ${datosRonda.agente.turno}
 📍 ${datosRonda.punto.nombre}
-📅 ${fecha}   🕐 ${hora}
-📌 ${direccionActual}`;
+📅 Fecha: ${fecha}
+🕐 Hora: ${hora}
+📌 ${direccionActual}
+
+📱 QR físico: VALIDADO
+📸 Evidencia registrada`;
 
 
     // ==================================================
-    // CREAR ARCHIVO DE LA EVIDENCIA
+    // CREAR ARCHIVO JPG
     // ==================================================
 
     const archivo =
@@ -1165,6 +1283,10 @@ async function compartirWhatsApp() {
 
 
     try {
+
+        // ==================================================
+        // COMPARTIR FOTO + TEXTO
+        // ==================================================
 
         if (
             navigator.share &&
@@ -1186,11 +1308,16 @@ async function compartirWhatsApp() {
 
         } else {
 
+            // ==================================================
+            // NAVEGADOR SIN SOPORTE
+            // ==================================================
+
             descargarImagen();
 
 
             alert(
-                "Este navegador no permite compartir directamente. La fotografía fue descargada."
+                "Este navegador no permite compartir directamente. " +
+                "La fotografía fue descargada."
             );
         }
 
@@ -1211,8 +1338,16 @@ async function compartirWhatsApp() {
 
 function descargarImagen() {
 
+    if (!imagenFinal) {
+
+        return;
+    }
+
+
     const enlace =
-        document.createElement("a");
+        document.createElement(
+            "a"
+        );
 
 
     const url =
@@ -1229,7 +1364,15 @@ function descargarImagen() {
         "evidencia-ronda.jpg";
 
 
+    document.body.appendChild(
+        enlace
+    );
+
+
     enlace.click();
+
+
+    enlace.remove();
 
 
     setTimeout(
@@ -1240,6 +1383,7 @@ function descargarImagen() {
             );
 
         },
+
         1000
     );
 }
@@ -1279,6 +1423,10 @@ window.addEventListener(
                 .clearWatch(
                     gpsWatchId
                 );
+
+
+            gpsWatchId =
+                null;
         }
     }
 );
@@ -1288,7 +1436,9 @@ window.addEventListener(
 // 12. INICIAR
 // ======================================================
 
-if (cargarDatos()) {
+if (
+    cargarDatos()
+) {
 
     iniciarGPS();
 }
