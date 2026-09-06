@@ -37,7 +37,7 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(clients.openWindow(destino));
 });
 
-const CACHE_NAME = "rondas-seguridad-v6-gratis-vercel";
+const CACHE_NAME = "rondas-seguridad-v7-fix-iphone-push";
 const APP_SHELL = [
   "/",
   "/index.html",

@@ -81,28 +81,58 @@ async function prepararPush() {
 
   if (!btn || !estado) return;
 
-  btn.addEventListener("click", activarNotificacionesPush);
+  btn.disabled = false;
+  btn.textContent = "🔔 ACTIVAR NOTIFICACIONES";
 
-  const guardado = localStorage.getItem("fcmAdminToken");
-  if (guardado && Notification.permission === "granted") {
-    estado.textContent = "✅ Notificaciones automáticas activadas";
-    btn.textContent = "🔔 NOTIFICACIONES ACTIVADAS";
+  if (!("Notification" in window)) {
+    estado.textContent = "❌ Este navegador no admite notificaciones.";
     btn.disabled = true;
-  } else if (Notification.permission === "denied") {
-    estado.textContent = "Notificaciones bloqueadas en este dispositivo";
+    return;
+  }
+
+  if (Notification.permission === "denied") {
+    estado.textContent = "⚠️ Las notificaciones están bloqueadas en el iPhone/navegador.";
+    btn.textContent = "🔔 NOTIFICACIONES BLOQUEADAS";
+    return;
+  }
+
+  const docId = localStorage.getItem("pushDocId");
+  if (Notification.permission === "granted" && docId) {
+    estado.textContent = "✅ Notificaciones automáticas activadas";
+    btn.textContent = "🔔 REACTIVAR / ACTUALIZAR";
+  } else if (Notification.permission === "granted") {
+    estado.textContent = "Permiso concedido. Pulsa ACTIVAR para registrar este celular.";
   } else {
     estado.textContent = "Notificaciones todavía no activadas";
   }
 
-  // Mensajes recibidos mientras Administración está abierta.
-  if (await isSupported()) {
-    const messaging = getMessaging();
-    onMessage(messaging, (payload) => {
-      const titulo = payload.notification?.title || "Rondas de Seguridad";
-      const cuerpo = payload.notification?.body || "Nueva notificación";
-      estado.textContent = "🔔 " + titulo + " — " + cuerpo;
-    });
-  }
+  // Importante en iPhone: el requestPermission debe ocurrir directamente
+  // dentro del toque del usuario, sin operaciones async previas.
+  btn.onclick = async () => {
+    try {
+      if (Notification.permission === "default") {
+        const permiso = await Notification.requestPermission();
+        if (permiso !== "granted") {
+          estado.textContent = "⚠️ No se concedió permiso para notificaciones.";
+          return;
+        }
+      }
+
+      estado.textContent = "Registrando este celular...";
+      await activarNotificacionesPush();
+
+      // Si activarNotificacionesPush terminó correctamente habrá guardado pushDocId.
+      if (localStorage.getItem("pushDocId")) {
+        estado.textContent = "✅ Notificaciones automáticas activadas";
+        btn.textContent = "🔔 REACTIVAR / ACTUALIZAR";
+        btn.disabled = false;
+      }
+    } catch (e) {
+      console.error(e);
+      estado.textContent = "❌ " + (e?.message || "No se pudo activar");
+      btn.disabled = false;
+    }
+  };
 }
 
 document.addEventListener("DOMContentLoaded", prepararPush);
@@ -3466,7 +3496,6 @@ document.addEventListener("click", function(e) {
     ) {
         e.preventDefault();
         e.stopImmediatePropagation();
-        alert("Tu cuenta es de SUPERVISORA y tiene acceso de solo lectura.");
     }
 }, true);
 
