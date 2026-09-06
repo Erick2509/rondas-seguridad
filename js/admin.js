@@ -1,4 +1,7 @@
 import { db } from "./firebase.js";
+import {
+    getAuth, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 import {
     collection,
@@ -12,6 +15,117 @@ import {
     updateDoc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+
+// =====================================================
+// AUTENTICACIÓN Y ROLES
+// =====================================================
+
+const auth = getAuth();
+let rolActual = null;
+let usuarioActual = null;
+let accesoResuelto = false;
+
+function ocultarFuncionesEdicionParaSupervisora() {
+    // La supervisora solo usa el historial de rondas.
+    const selectores = [
+        '[data-seccion="inicio"]',
+        '[data-seccion="puntos"]',
+        '[data-seccion="agentes"]',
+        '[data-target="inicio"]',
+        '[data-target="puntos"]',
+        '[data-target="agentes"]'
+    ];
+
+    selectores.forEach(function(sel) {
+        document.querySelectorAll(sel).forEach(function(el) {
+            el.style.display = "none";
+        });
+    });
+
+    // Compatibilidad con los IDs/clases del panel actual.
+    document.querySelectorAll("button, a").forEach(function(el) {
+        const t = (el.textContent || "").trim().toUpperCase();
+        if (
+            t.includes("PUNTOS / QR") ||
+            t === "PUNTOS" ||
+            t.includes("AGENTES") ||
+            t === "INICIO"
+        ) {
+            el.style.display = "none";
+        }
+    });
+
+    // Oculta paneles de edición si existieran visibles.
+    document.querySelectorAll('[id*="punto"],[id*="agente"]').forEach(function(el) {
+        const id=(el.id||"").toLowerCase();
+        if (
+            id.includes("form") ||
+            id.includes("modal") ||
+            id.includes("seccion") ||
+            id.includes("panel")
+        ) el.style.display="none";
+    });
+
+    // Abre la pestaña Rondas.
+    const candidatos=[...document.querySelectorAll("button,a")];
+    const rondas=candidatos.find(function(el){
+        return (el.textContent||"").trim().toUpperCase()==="RONDAS";
+    });
+    if(rondas) rondas.click();
+}
+
+async function resolverAcceso(user) {
+    if (!user) {
+        location.replace("login.html");
+        return;
+    }
+
+    const snap = await getDoc(doc(db, "usuarios", user.uid));
+    if (!snap.exists() || snap.data().activo !== true) {
+        await signOut(auth);
+        location.replace("login.html");
+        return;
+    }
+
+    const rol = snap.data().rol;
+    if (rol !== "ADMIN" && rol !== "SUPERVISORA") {
+        await signOut(auth);
+        location.replace("login.html");
+        return;
+    }
+
+    rolActual = rol;
+    usuarioActual = user;
+    accesoResuelto = true;
+
+    const rolSesion=document.getElementById("rolSesion");
+    const correoSesion=document.getElementById("correoSesion");
+    if(rolSesion) rolSesion.textContent =
+        rol === "ADMIN" ? "👨‍💻 ADMINISTRADOR" : "👩‍💼 SUPERVISORA · SOLO LECTURA";
+    if(correoSesion) correoSesion.textContent = user.email || "";
+
+    if (rol === "SUPERVISORA") {
+        ocultarFuncionesEdicionParaSupervisora();
+    }
+
+    document.body.style.visibility = "visible";
+}
+
+onAuthStateChanged(auth, function(user) {
+    resolverAcceso(user).catch(async function() {
+        try { await signOut(auth); } catch(e) {}
+        location.replace("login.html");
+    });
+});
+
+const btnCerrarSesion=document.getElementById("btnCerrarSesion");
+if(btnCerrarSesion){
+    btnCerrarSesion.addEventListener("click", async function(){
+        await signOut(auth);
+        location.replace("login.html");
+    });
+}
 
 
 // =====================================================
@@ -3195,3 +3309,21 @@ cargarPuntos()
     });
 
 cargarAgentes();
+
+// Segunda barrera visual: bloquea acciones de edición en modo SUPERVISORA.
+document.addEventListener("click", function(e) {
+    if (rolActual !== "SUPERVISORA") return;
+    const el=e.target.closest("button,a");
+    if(!el) return;
+    const t=(el.textContent||"").toUpperCase();
+    const id=(el.id||"").toLowerCase();
+    if (
+        t.includes("GUARDAR") || t.includes("CREAR") || t.includes("EDITAR") ||
+        t.includes("ACTIVAR") || t.includes("DESACTIVAR") || t.includes("ELIMINAR") ||
+        id.includes("guardar") || id.includes("crear") || id.includes("editar")
+    ) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        alert("Tu cuenta es de SUPERVISORA y tiene acceso de solo lectura.");
+    }
+}, true);
