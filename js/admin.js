@@ -315,6 +315,8 @@ const qrFuncion = $("qrFuncion");
 const qrOrden = $("qrOrden");
 
 const btnGenerarQR = $("btnGenerarQR");
+const btnCancelarEdicionQR = $("btnCancelarEdicionQR");
+const tituloFormularioQR = $("tituloFormularioQR");
 
 const qrError = $("qrError");
 const qrResultado = $("qrResultado");
@@ -386,6 +388,7 @@ let codigoQRActual = "";
 let nombreQRActual = "";
 
 let agenteEditandoId = null;
+let puntoEditandoId = null;
 
 
 // =====================================================
@@ -1656,6 +1659,43 @@ function crearQRVisual(
 // GUARDAR PUNTO
 // =====================================================
 
+function limpiarFormularioQR() {
+    puntoEditandoId = null;
+    qrCodigo.value = "";
+    qrCodigo.disabled = false;
+    qrNombre.value = "";
+    qrTipoRonda.value = "";
+    qrFuncion.value = "";
+    qrOrden.value = "";
+    btnGenerarQR.textContent = "💾 GUARDAR PUNTO Y GENERAR QR";
+    if (btnCancelarEdicionQR) btnCancelarEdicionQR.style.display = "none";
+    if (tituloFormularioQR) tituloFormularioQR.textContent = "📱 Crear punto y código QR";
+}
+
+function editarPuntoQR(punto) {
+    if (rolActual !== "ADMIN") return;
+    puntoEditandoId = punto.id;
+    qrCodigo.value = punto.codigo || punto.id;
+    qrCodigo.disabled = true; // El código físico del QR nunca cambia.
+    qrNombre.value = punto.nombre || "";
+    qrTipoRonda.value = punto.tipoRonda || "";
+    qrFuncion.value = punto.funcionQR || "";
+    qrOrden.value = punto.orden ?? "";
+    if (tituloFormularioQR) tituloFormularioQR.textContent = "✏️ Editar punto QR";
+    btnGenerarQR.textContent = "💾 GUARDAR CAMBIOS";
+    if (btnCancelarEdicionQR) btnCancelarEdicionQR.style.display = "block";
+    ocultarMensaje(qrError);
+    mostrarMensaje(qrError, "ℹ️ El código " + (punto.codigo || punto.id) + " está bloqueado para que el QR físico siga funcionando.", true);
+    document.querySelector(".qr-panel")?.scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+if (btnCancelarEdicionQR) {
+    btnCancelarEdicionQR.addEventListener("click", function() {
+        limpiarFormularioQR();
+        ocultarMensaje(qrError);
+    });
+}
+
 async function guardarPuntoYGenerarQR() {
     ocultarMensaje(qrError);
 
@@ -1667,29 +1707,12 @@ async function guardarPuntoYGenerarQR() {
 
     if (!codigo || !/^P\d+$/.test(codigo)) {
         mostrarMensaje(qrError, "El código debe tener formato P01, P02, P03...");
-        qrCodigo.focus();
-        return;
+        qrCodigo.focus(); return;
     }
-    if (!nombre) {
-        mostrarMensaje(qrError, "Ingresa el nombre del punto.");
-        qrNombre.focus();
-        return;
-    }
-    if (!tipoRonda) {
-        mostrarMensaje(qrError, "Selecciona Ronda Externa o Ronda Interna.");
-        qrTipoRonda.focus();
-        return;
-    }
-    if (!funcionQR) {
-        mostrarMensaje(qrError, "Selecciona la función del QR: INICIO, PUNTO o FINAL.");
-        qrFuncion.focus();
-        return;
-    }
-    if (!Number.isInteger(orden) || orden < 1) {
-        mostrarMensaje(qrError, "Ingresa un número de orden válido desde 1.");
-        qrOrden.focus();
-        return;
-    }
+    if (!nombre) { mostrarMensaje(qrError, "Ingresa el nombre del punto."); qrNombre.focus(); return; }
+    if (!tipoRonda) { mostrarMensaje(qrError, "Selecciona Ronda Externa o Ronda Interna."); qrTipoRonda.focus(); return; }
+    if (!funcionQR) { mostrarMensaje(qrError, "Selecciona la función del QR: INICIO, PUNTO o FINAL."); qrFuncion.focus(); return; }
+    if (!Number.isInteger(orden) || orden < 1) { mostrarMensaje(qrError, "Ingresa un número de orden válido desde 1."); qrOrden.focus(); return; }
 
     btnGenerarQR.disabled = true;
     btnGenerarQR.textContent = "COMPROBANDO CONFIGURACIÓN...";
@@ -1697,50 +1720,55 @@ async function guardarPuntoYGenerarQR() {
     try {
         const referencia = doc(db, "puntos", codigo);
         const existente = await getDoc(referencia);
-        if (existente.exists()) {
+
+        if (!puntoEditandoId && existente.exists()) {
             qrResultado.style.display = "none";
             mostrarMensaje(qrError, `❌ El código ${codigo} ya existe. Usa otro código.`);
             return;
         }
+        if (puntoEditandoId && codigo !== puntoEditandoId) {
+            mostrarMensaje(qrError, "❌ El código del QR no puede modificarse.");
+            return;
+        }
 
         const resultadoPuntos = await getDocs(collection(db, "puntos"));
-        let ordenRepetido = false;
-        let inicioRepetido = false;
-        let finalRepetido = false;
-
+        let ordenRepetido = false, inicioRepetido = false, finalRepetido = false;
         resultadoPuntos.forEach((documento) => {
-            const p = documento.data();
-            if (p.tipoRonda === tipoRonda && Number(p.orden) === orden) ordenRepetido = true;
-            if (p.tipoRonda === tipoRonda && p.funcionQR === "INICIO" && funcionQR === "INICIO") inicioRepetido = true;
-            if (p.tipoRonda === tipoRonda && p.funcionQR === "FINAL" && funcionQR === "FINAL") finalRepetido = true;
+            if (documento.id === puntoEditandoId) return; // excluir el propio punto al editar
+            const q = documento.data();
+            if (q.tipoRonda === tipoRonda && Number(q.orden) === orden) ordenRepetido = true;
+            if (q.tipoRonda === tipoRonda && q.funcionQR === "INICIO" && funcionQR === "INICIO") inicioRepetido = true;
+            if (q.tipoRonda === tipoRonda && q.funcionQR === "FINAL" && funcionQR === "FINAL") finalRepetido = true;
         });
 
-        if (ordenRepetido) {
-            mostrarMensaje(qrError, `❌ El orden ${orden} ya está usado en la Ronda ${tipoRonda}.`);
-            return;
-        }
-        if (inicioRepetido) {
-            mostrarMensaje(qrError, `❌ La Ronda ${tipoRonda} ya tiene un QR de INICIO.`);
-            return;
-        }
-        if (finalRepetido) {
-            mostrarMensaje(qrError, `❌ La Ronda ${tipoRonda} ya tiene un QR FINAL.`);
-            return;
-        }
+        if (ordenRepetido) { mostrarMensaje(qrError, `❌ El orden ${orden} ya está usado en la Ronda ${tipoRonda}.`); return; }
+        if (inicioRepetido) { mostrarMensaje(qrError, `❌ La Ronda ${tipoRonda} ya tiene un QR de INICIO.`); return; }
+        if (finalRepetido) { mostrarMensaje(qrError, `❌ La Ronda ${tipoRonda} ya tiene un QR FINAL.`); return; }
 
-        btnGenerarQR.textContent = "GUARDANDO PUNTO...";
-        await setDoc(referencia, { codigo, nombre, tipoRonda, funcionQR, orden, activo: true, creadoEn: serverTimestamp() });
-        crearQRVisual(codigo, nombre);
-        mostrarMensaje(qrError, `✅ ${codigo} creado como ${funcionQR} de Ronda ${tipoRonda}, orden ${orden}.`, true);
-
-        qrCodigo.value = ""; qrNombre.value = ""; qrTipoRonda.value = ""; qrFuncion.value = ""; qrOrden.value = "";
+        if (puntoEditandoId) {
+            btnGenerarQR.textContent = "GUARDANDO CAMBIOS...";
+            await updateDoc(referencia, {
+                codigo, nombre, tipoRonda, funcionQR, orden,
+                actualizadoEn: serverTimestamp()
+            });
+            crearQRVisual(codigo, nombre);
+            const guardado = codigo;
+            limpiarFormularioQR();
+            mostrarMensaje(qrError, `✅ ${guardado} actualizado. El QR físico anterior sigue siendo válido.`, true);
+        } else {
+            btnGenerarQR.textContent = "GUARDANDO PUNTO...";
+            await setDoc(referencia, { codigo, nombre, tipoRonda, funcionQR, orden, activo: true, creadoEn: serverTimestamp() });
+            crearQRVisual(codigo, nombre);
+            mostrarMensaje(qrError, `✅ ${codigo} creado como ${funcionQR} de Ronda ${tipoRonda}, orden ${orden}.`, true);
+            limpiarFormularioQR();
+        }
         await cargarPuntos();
     } catch (e) {
-        console.error("Error creando punto:", e);
-        mostrarMensaje(qrError, "No se pudo crear el punto: " + e.message);
+        console.error("Error guardando punto:", e);
+        mostrarMensaje(qrError, "No se pudo guardar el punto: " + e.message);
     } finally {
         btnGenerarQR.disabled = false;
-        btnGenerarQR.textContent = "💾 GUARDAR PUNTO Y GENERAR QR";
+        btnGenerarQR.textContent = puntoEditandoId ? "💾 GUARDAR CAMBIOS" : "💾 GUARDAR PUNTO Y GENERAR QR";
     }
 }
 
@@ -2348,13 +2376,26 @@ function mostrarPuntos(
             );
 
 
-            superior.appendChild(
-                info
-            );
+            superior.appendChild(info);
 
-            superior.appendChild(
-                boton
-            );
+            const acciones = document.createElement("div");
+            acciones.style.display = "flex";
+            acciones.style.gap = "8px";
+            acciones.style.flexWrap = "wrap";
+            acciones.appendChild(boton);
+
+            if (rolActual === "ADMIN") {
+                const btnEditar = document.createElement("button");
+                btnEditar.className = "btn-actualizar";
+                btnEditar.type = "button";
+                btnEditar.textContent = "✏️ Editar";
+                btnEditar.addEventListener("click", function() {
+                    editarPuntoQR(punto);
+                });
+                acciones.appendChild(btnEditar);
+            }
+
+            superior.appendChild(acciones);
 
             tarjeta.appendChild(
                 superior
