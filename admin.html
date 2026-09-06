@@ -2,7 +2,6 @@
 <html lang="es">
 
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -116,12 +115,20 @@
             margin-bottom: 20px;
         }
 
-        input {
+        input,
+        select {
             width: 100%;
             padding: 12px;
             border: 1px solid #ccc;
             border-radius: 8px;
             font-size: 16px;
+            background: white;
+        }
+
+        input:disabled {
+            background: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
         }
 
         label {
@@ -149,6 +156,16 @@
         .btn-principal:disabled {
             opacity: .6;
             cursor: not-allowed;
+        }
+
+        .btn-secundario {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: 1px solid #6c757d;
+            border-radius: 8px;
+            background: white;
+            font-weight: bold;
         }
 
         .btn-actualizar {
@@ -182,7 +199,9 @@
             color: #666;
         }
 
-        .ronda {
+        .ronda,
+        .punto-item,
+        .agente-item {
             background: white;
             padding: 18px;
             border-radius: 12px;
@@ -190,10 +209,13 @@
             box-shadow: 0 2px 7px rgba(0,0,0,.07);
         }
 
-        .ronda-superior {
+        .ronda-superior,
+        .punto-superior,
+        .agente-superior {
             display: flex;
             justify-content: space-between;
             gap: 15px;
+            align-items: center;
             flex-wrap: wrap;
         }
 
@@ -202,21 +224,36 @@
             font-weight: bold;
         }
 
-        .estado {
+        .detalle {
+            margin-top: 10px;
+            line-height: 1.8;
+        }
+
+        .estado,
+        .estado-activo {
+            display: inline-block;
             background: #d1fae5;
             color: #065f46;
             padding: 6px 10px;
             border-radius: 20px;
             font-size: 13px;
             font-weight: bold;
+            margin-top: 7px;
         }
 
-        .detalle {
-            margin-top: 10px;
-            line-height: 1.8;
+        .estado-inactivo {
+            display: inline-block;
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 7px;
         }
 
-        .qr-panel {
+        .qr-panel,
+        .agente-panel {
             max-width: 700px;
         }
 
@@ -292,60 +329,59 @@
             font-weight: bold;
         }
 
-        .historial-qr {
+        .historial-qr,
+        .historial-agentes {
             margin-top: 30px;
         }
 
-        .punto-item {
-            background: white;
-            border-radius: 12px;
-            padding: 17px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 7px rgba(0,0,0,.07);
-        }
-
-        .punto-superior {
-            display: flex;
-            justify-content: space-between;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .punto-codigo {
+        .punto-codigo,
+        .agente-codigo {
             font-size: 18px;
             font-weight: bold;
         }
 
-        .punto-nombre {
+        .punto-nombre,
+        .agente-nombre {
             color: #555;
             margin-top: 5px;
         }
 
-        .punto-fecha {
+        .punto-fecha,
+        .agente-meta {
             color: #777;
             font-size: 13px;
             margin-top: 7px;
         }
 
-        .activo-punto {
-            display: inline-block;
-            margin-top: 7px;
-            background: #d1fae5;
-            color: #065f46;
-            padding: 4px 9px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
+        .acciones {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
-        .btn-ver-qr {
+        .btn-ver-qr,
+        .btn-editar,
+        .btn-estado {
             border: 0;
             border-radius: 8px;
-            background: #0d6efd;
             color: white;
             padding: 10px 14px;
             font-weight: bold;
+        }
+
+        .btn-ver-qr,
+        .btn-editar {
+            background: #0d6efd;
+        }
+
+        .btn-estado {
+            background: #6c757d;
+        }
+
+        .nota {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 6px;
         }
 
         @media (max-width:600px) {
@@ -368,15 +404,19 @@
                 padding: 15px;
             }
 
+            .acciones {
+                width: 100%;
+            }
+
+            .acciones button {
+                flex: 1;
+            }
         }
 
     </style>
-
 </head>
 
-
 <body>
-
 
 <header>
 
@@ -396,7 +436,6 @@
 
 
 <main class="contenedor">
-
 
     <nav class="menu">
 
@@ -422,10 +461,19 @@
             📱 Puntos / QR
         </button>
 
+        <button
+            id="menuAgentes"
+            type="button"
+        >
+            👮 Agentes
+        </button>
+
     </nav>
 
 
+    <!-- ============================= -->
     <!-- INICIO -->
+    <!-- ============================= -->
 
     <section
         id="seccionInicio"
@@ -437,7 +485,6 @@
         <div class="resumen">
 
             <div class="tarjeta">
-
                 <div class="etiqueta">
                     Rondas cargadas
                 </div>
@@ -448,12 +495,10 @@
                 >
                     0
                 </div>
-
             </div>
 
 
             <div class="tarjeta">
-
                 <div class="etiqueta">
                     Rondas de hoy
                 </div>
@@ -464,14 +509,12 @@
                 >
                     0
                 </div>
-
             </div>
 
 
             <div class="tarjeta">
-
                 <div class="etiqueta">
-                    Agentes
+                    Agentes registrados
                 </div>
 
                 <div
@@ -480,12 +523,10 @@
                 >
                     0
                 </div>
-
             </div>
 
 
             <div class="tarjeta">
-
                 <div class="etiqueta">
                     Puntos creados
                 </div>
@@ -496,7 +537,6 @@
                 >
                     0
                 </div>
-
             </div>
 
         </div>
@@ -504,7 +544,9 @@
     </section>
 
 
+    <!-- ============================= -->
     <!-- RONDAS -->
+    <!-- ============================= -->
 
     <section
         id="seccionRondas"
@@ -514,7 +556,6 @@
         <h2>
             📋 Historial de rondas
         </h2>
-
 
         <div class="barra">
 
@@ -534,12 +575,10 @@
 
         </div>
 
-
         <div
             id="error"
             class="error"
         ></div>
-
 
         <div
             id="cargando"
@@ -548,19 +587,19 @@
             Cargando rondas...
         </div>
 
-
         <div id="listaRondas"></div>
 
     </section>
 
 
+    <!-- ============================= -->
     <!-- PUNTOS / QR -->
+    <!-- ============================= -->
 
     <section
         id="seccionQR"
         class="seccion"
     >
-
 
         <div class="tarjeta qr-panel">
 
@@ -573,7 +612,6 @@
                 Un código existente no podrá registrarse nuevamente.
             </p>
 
-
             <label for="qrCodigo">
                 Código del punto
             </label>
@@ -584,7 +622,6 @@
                 placeholder="Ejemplo: P02"
                 autocomplete="off"
             >
-
 
             <label for="qrNombre">
                 Nombre del punto
@@ -597,7 +634,6 @@
                 autocomplete="off"
             >
 
-
             <button
                 id="btnGenerarQR"
                 class="btn-principal"
@@ -606,18 +642,15 @@
                 💾 GUARDAR PUNTO Y GENERAR QR
             </button>
 
-
             <div
                 id="qrError"
                 class="error"
             ></div>
 
-
             <div
                 id="qrResultado"
                 class="qr-resultado"
             >
-
 
                 <div
                     id="areaQR"
@@ -628,21 +661,17 @@
                         🛡️ RONDA DE SEGURIDAD
                     </div>
 
-
                     <div
                         id="qrNombreVisual"
                         class="qr-nombre"
                     ></div>
-
 
                     <div
                         id="qrCodigoVisual"
                         class="qr-codigo"
                     ></div>
 
-
                     <div id="codigoQR"></div>
-
 
                     <div
                         id="qrUrl"
@@ -651,7 +680,6 @@
 
                 </div>
 
-
                 <button
                     id="btnDescargarQR"
                     class="btn-descargar"
@@ -659,7 +687,6 @@
                 >
                     ⬇ DESCARGAR QR
                 </button>
-
 
                 <button
                     id="btnImprimirQR"
@@ -674,14 +701,11 @@
         </div>
 
 
-        <!-- HISTORIAL -->
-
         <div class="historial-qr">
 
             <h2>
                 🗂️ Historial de QR creados
             </h2>
-
 
             <div class="barra">
 
@@ -690,7 +714,6 @@
                     type="search"
                     placeholder="Buscar P01, P02, Cochera..."
                 >
-
 
                 <button
                     id="btnActualizarPuntos"
@@ -702,7 +725,6 @@
 
             </div>
 
-
             <div
                 id="cargandoPuntos"
                 class="cargando"
@@ -710,14 +732,166 @@
                 Cargando puntos...
             </div>
 
-
             <div id="listaPuntos"></div>
 
         </div>
 
-
     </section>
 
+
+    <!-- ============================= -->
+    <!-- AGENTES -->
+    <!-- ============================= -->
+
+    <section
+        id="seccionAgentes"
+        class="seccion"
+    >
+
+        <div class="tarjeta agente-panel">
+
+            <h2 id="tituloFormularioAgente">
+                👮 Crear agente
+            </h2>
+
+            <p>
+                El código del agente es único.
+                Después de crear el agente,
+                su identificador no podrá modificarse.
+            </p>
+
+            <label for="agenteCodigo">
+                Código / identificador
+            </label>
+
+            <input
+                id="agenteCodigo"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                placeholder="Ejemplo: 002"
+                autocomplete="off"
+            >
+
+            <div class="nota">
+                Ejemplos: 001, 002, 003.
+                Al editar un agente este campo quedará bloqueado.
+            </div>
+
+
+            <label for="agenteNombre">
+                Nombre y apellidos
+            </label>
+
+            <input
+                id="agenteNombre"
+                type="text"
+                placeholder="Ejemplo: Juan Pérez"
+                autocomplete="off"
+            >
+
+
+            <label for="agenteCargo">
+                Cargo
+            </label>
+
+            <input
+                id="agenteCargo"
+                type="text"
+                placeholder="Ejemplo: Agente de Seguridad"
+                autocomplete="off"
+            >
+
+
+            <label for="agenteTurno">
+                Turno
+            </label>
+
+            <select id="agenteTurno">
+
+                <option value="">
+                    Seleccionar turno
+                </option>
+
+                <option value="Día">
+                    Día
+                </option>
+
+                <option value="Noche">
+                    Noche
+                </option>
+
+                <option value="Rotativo">
+                    Rotativo
+                </option>
+
+            </select>
+
+
+            <button
+                id="btnGuardarAgente"
+                class="btn-principal"
+                type="button"
+            >
+                💾 GUARDAR AGENTE
+            </button>
+
+
+            <button
+                id="btnCancelarEdicionAgente"
+                class="btn-secundario"
+                type="button"
+                style="display:none"
+            >
+                CANCELAR EDICIÓN
+            </button>
+
+
+            <div
+                id="agenteMensaje"
+                class="error"
+            ></div>
+
+        </div>
+
+
+        <div class="historial-agentes">
+
+            <h2>
+                👮 Agentes registrados
+            </h2>
+
+            <div class="barra">
+
+                <input
+                    id="buscarAgente"
+                    type="search"
+                    placeholder="Buscar código, nombre, cargo o turno..."
+                >
+
+                <button
+                    id="btnActualizarAgentes"
+                    class="btn-actualizar"
+                    type="button"
+                >
+                    🔄 Actualizar agentes
+                </button>
+
+            </div>
+
+
+            <div
+                id="cargandoAgentes"
+                class="cargando"
+            >
+                Cargando agentes...
+            </div>
+
+            <div id="listaAgentes"></div>
+
+        </div>
+
+    </section>
 
 </main>
 
@@ -726,13 +900,10 @@
     src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
 ></script>
 
-
 <script
     type="module"
     src="js/admin.js"
 ></script>
 
-
 </body>
-
 </html>
