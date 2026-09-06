@@ -42,7 +42,12 @@
                 </div>
             </div>
 
-            <button id="btnCerrarSesion" type="button">
+            <button id="btnNotificaciones" class="btn-notificaciones" type="button" title="Notificaciones">🔔<span id="contadorNotificaciones" class="contador-notificaciones" hidden>0</span></button>
+<div id="panelNotificaciones" class="panel-notificaciones" hidden>
+  <div class="notificaciones-cabecera"><strong>🔔 Notificaciones</strong><button id="btnMarcarLeidas" type="button">Marcar leídas</button></div>
+  <div id="listaNotificaciones" class="lista-notificaciones"><div class="notificacion-vacia">No hay notificaciones.</div></div>
+</div>
+<button id="btnCerrarSesion" type="button">
                 <span class="icono-salir">↪</span>
                 CERRAR SESIÓN
             </button>
