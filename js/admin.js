@@ -270,6 +270,14 @@ function mostrarSeccion(nombre) {
 
         seccionInicio.classList.add("activa");
         menuInicio.classList.add("activo");
+
+        // Al volver al resumen, consulta nuevamente Firebase para
+        // mostrar rondas, puntos y agentes con los datos más recientes.
+        Promise.allSettled([
+            cargarRondas(),
+            cargarPuntos(),
+            cargarAgentes()
+        ]);
     }
 
 
@@ -277,6 +285,9 @@ function mostrarSeccion(nombre) {
 
         seccionRondas.classList.add("activa");
         menuRondas.classList.add("activo");
+
+        // Actualiza el historial cada vez que se pulsa Rondas.
+        cargarRondas();
     }
 
 
@@ -285,6 +296,7 @@ function mostrarSeccion(nombre) {
         seccionQR.classList.add("activa");
         menuQR.classList.add("activo");
 
+        // Actualiza la lista de puntos/QR cada vez que se abre.
         cargarPuntos();
     }
 
@@ -294,6 +306,7 @@ function mostrarSeccion(nombre) {
         seccionAgentes.classList.add("activa");
         menuAgentes.classList.add("activo");
 
+        // Actualiza la lista de agentes cada vez que se abre.
         cargarAgentes();
     }
 }

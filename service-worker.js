@@ -1,4 +1,4 @@
-const CACHE_NAME = "rondas-seguridad-v2-dos-pwa";
+const CACHE_NAME = "rondas-seguridad-v3-actualizacion-tabs";
 const APP_SHELL = [
   "/",
   "/index.html",
