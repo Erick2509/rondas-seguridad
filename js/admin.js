@@ -50,7 +50,7 @@ async function activarNotificacionesPush() {
       localStorage.setItem("pushDeviceId", deviceId);
     }
 
-    const docId = `${user.uid}_${deviceId}`;
+    const docId = `device_${deviceId}`;
 
     await setDoc(doc(db, "dispositivosPush", docId), {
       uid: user.uid,

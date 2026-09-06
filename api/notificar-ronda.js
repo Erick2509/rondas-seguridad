@@ -70,7 +70,16 @@ module.exports = async function handler(req, res) {
     if (!debeEnviar) return res.status(200).json({ ok:true, duplicado:true });
 
     const ds = await db.collection("dispositivosPush").where("activo","==",true).get();
-    const docs = ds.docs.filter(d => d.data().token);
+
+    // Un mismo iPhone/Android puede haber iniciado sesión con ADMIN y luego
+    // SUPERVISORA. Enviar una sola vez por token físico evita duplicados.
+    const porToken = new Map();
+    for (const d of ds.docs) {
+      const token = d.data().token;
+      if (typeof token === "string" && token) porToken.set(token, d);
+    }
+    const docs = [...porToken.values()];
+
     if (!docs.length) return res.status(200).json({ ok:true, enviados:0 });
 
     let title, body;
