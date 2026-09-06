@@ -825,8 +825,10 @@ async function cargarRondas() {
         cargando.style.display = "none";
 
         actualizarResumenRondas();
+        instalarFiltrosRondas();
+        actualizarOpcionesFiltrosRondas();
         paginaRondas = 1;
-        mostrarRondas(rondas);
+        aplicarFiltrosRondas();
 
     } catch (e) {
 
@@ -1598,84 +1600,224 @@ function crearBotonEliminarRonda(ronda) {
 }
 
 
+
+// =====================================================
+// FILTROS DE RONDAS
+// FECHA · AGENTE · TURNO · TIPO DE RONDA
+// =====================================================
+
+let filtrosRondasInstalados = false;
+
+function normalizarTextoFiltro(valor) {
+    return String(valor || "").trim();
+}
+
+function fechaISODeRonda(ronda) {
+    const valores = [
+        ronda.horaInicioLocal,
+        ronda.fechaInicio,
+        ronda.fecha
+    ];
+
+    for (const valor of valores) {
+        if (typeof valor !== "string") continue;
+
+        let m = valor.match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+
+        m = valor.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+    }
+
+    const ts = ronda.inicioTimestamp || ronda.timestamp;
+    if (ts && typeof ts.toDate === "function") {
+        const d = ts.toDate();
+        const y = d.getFullYear();
+        const mes = String(d.getMonth() + 1).padStart(2, "0");
+        const dia = String(d.getDate()).padStart(2, "0");
+        return `${y}-${mes}-${dia}`;
+    }
+
+    return "";
+}
+
+function instalarFiltrosRondas() {
+    if (filtrosRondasInstalados || !listaRondas) return;
+
+    const caja = document.createElement("div");
+    caja.id = "filtrosRondas";
+    caja.className = "filtros-rondas";
+
+    caja.innerHTML = `
+        <div class="filtro-ronda">
+            <label for="filtroFechaRonda">📅 Fecha</label>
+            <input type="date" id="filtroFechaRonda">
+        </div>
+
+        <div class="filtro-ronda">
+            <label for="filtroAgenteRonda">👤 Agente</label>
+            <select id="filtroAgenteRonda">
+                <option value="">Todos los agentes</option>
+            </select>
+        </div>
+
+        <div class="filtro-ronda">
+            <label for="filtroTurnoRonda">🕐 Turno</label>
+            <select id="filtroTurnoRonda">
+                <option value="">Todos los turnos</option>
+                <option value="DIA">Día</option>
+                <option value="NOCHE">Noche</option>
+            </select>
+        </div>
+
+        <div class="filtro-ronda">
+            <label for="filtroTipoRonda">🛡️ Tipo de ronda</label>
+            <select id="filtroTipoRonda">
+                <option value="">Todas</option>
+                <option value="INTERNA">INTERNA</option>
+                <option value="EXTERNA">EXTERNA</option>
+            </select>
+        </div>
+
+        <div class="filtro-ronda">
+            <label for="filtroEstadoRonda">📋 Estado</label>
+            <select id="filtroEstadoRonda">
+                <option value="">Todos los estados</option>
+                <option value="EN_CURSO">EN CURSO</option>
+                <option value="COMPLETADA">COMPLETADA</option>
+                <option value="INCOMPLETA">INCOMPLETA</option>
+            </select>
+        </div>
+
+        <button type="button"
+                id="btnLimpiarFiltrosRondas"
+                class="btn-limpiar-filtros">
+            ✖ LIMPIAR FILTROS
+        </button>
+    `;
+
+    listaRondas.parentNode.insertBefore(caja, listaRondas);
+
+    ["filtroFechaRonda", "filtroAgenteRonda", "filtroTurnoRonda", "filtroTipoRonda", "filtroEstadoRonda"]
+        .forEach(function(id) {
+            document.getElementById(id).addEventListener("change", function() {
+                paginaRondas = 1;
+                aplicarFiltrosRondas();
+            });
+        });
+
+    document.getElementById("btnLimpiarFiltrosRondas")
+        .addEventListener("click", function() {
+            document.getElementById("filtroFechaRonda").value = "";
+            document.getElementById("filtroAgenteRonda").value = "";
+            document.getElementById("filtroTurnoRonda").value = "";
+            document.getElementById("filtroTipoRonda").value = "";
+            document.getElementById("filtroEstadoRonda").value = "";
+            if (buscador) buscador.value = "";
+            paginaRondas = 1;
+            aplicarFiltrosRondas();
+        });
+
+    filtrosRondasInstalados = true;
+    actualizarOpcionesFiltrosRondas();
+}
+
+function actualizarOpcionesFiltrosRondas() {
+    if (!filtrosRondasInstalados) return;
+
+    const selectAgente = document.getElementById("filtroAgenteRonda");
+    const agenteActual = selectAgente.value;
+
+    const agentesUnicos = [...new Set(
+        rondas.map(r => normalizarTextoFiltro(r.agenteNombre)).filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b, "es"));
+
+    selectAgente.innerHTML =
+        '<option value="">Todos los agentes</option>' +
+        agentesUnicos.map(v => `<option value="${escapeHtmlFiltro(v)}">${escapeHtmlFiltro(v)}</option>`).join("");
+
+    if (agentesUnicos.includes(agenteActual)) selectAgente.value = agenteActual;
+}
+
+function escapeHtmlFiltro(valor) {
+    return String(valor)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+function aplicarFiltrosRondas() {
+    if (!filtrosRondasInstalados) {
+        mostrarRondas(rondas);
+        return;
+    }
+
+    const fecha = document.getElementById("filtroFechaRonda").value;
+    const agente = document.getElementById("filtroAgenteRonda").value;
+    const turno = document.getElementById("filtroTurnoRonda").value;
+    const tipo = document.getElementById("filtroTipoRonda").value;
+    const estado = document.getElementById("filtroEstadoRonda").value;
+
+    const texto = buscador ? buscador.value.trim().toLowerCase() : "";
+
+    const filtradas = rondas.filter(function(ronda) {
+        if (fecha && fechaISODeRonda(ronda) !== fecha) return false;
+
+        if (agente && normalizarTextoFiltro(ronda.agenteNombre) !== agente) {
+            return false;
+        }
+
+        if (turno) {
+            const turnoRonda = normalizarTextoFiltro(
+                ronda.agenteTurno || ronda.turno
+            ).toUpperCase()
+             .normalize("NFD")
+             .replace(/[\u0300-\u036f]/g, "");
+
+            if (turnoRonda !== turno) return false;
+        }
+
+        if (tipo && normalizarTextoFiltro(ronda.tipoRonda).toUpperCase() !== tipo) {
+            return false;
+        }
+
+        if (estado &&
+            normalizarTextoFiltro(ronda.estado).toUpperCase() !== estado) {
+            return false;
+        }
+
+        if (texto) {
+            const contenido = [
+                ronda.agenteNombre,
+                ronda.agenteCargo,
+                ronda.agenteTurno,
+                ronda.turno,
+                ronda.tipoRonda,
+                ronda.estado,
+                ronda.fecha,
+                ronda.horaInicioLocal,
+                ronda.inicioQrCodigo
+            ].join(" ").toLowerCase();
+
+            if (!contenido.includes(texto)) return false;
+        }
+
+        return true;
+    });
+
+    mostrarRondas(filtradas);
+}
+
+
 // =====================================================
 // BUSCAR RONDAS
 // =====================================================
 
 function filtrarRondas() {
-
-    const texto =
-        buscador.value
-            .trim()
-            .toLowerCase();
-
-    if (!texto) {
-
-        paginaRondas = 1;
-        mostrarRondas(
-            rondas
-        );
-
-        return;
-    }
-
-    const filtradas =
-        rondas.filter(
-            function (ronda) {
-
-                const qr =
-                    Array.isArray(
-                        ronda.validaciones
-                    )
-                        ? ronda.validaciones
-                            .map(
-                                function (v) {
-                                    return [
-                                        v.puntoCodigo,
-                                        v.puntoId,
-                                        v.puntoNombre,
-                                        v.funcionQR,
-                                        v.orden
-                                    ]
-                                    .filter(Boolean)
-                                    .join(" ");
-                                }
-                            )
-                            .join(" ")
-                        : "";
-
-                const contenido =
-                    [
-                        ronda.agenteNombre,
-                        ronda.agenteCargo,
-                        ronda.agenteTurno,
-                        ronda.tipoRonda,
-                        ronda.estado,
-                        ronda.motivoCancelacion,
-                        horaCancelacionRonda(ronda),
-                        fechaRonda(ronda),
-                        ronda.puntoNombre,
-                        ronda.puntoCodigo,
-                        ronda.puntoId,
-                        ronda.fecha,
-                        ronda.hora,
-                        ronda.direccion,
-                        qr
-                    ]
-                    .filter(Boolean)
-                    .join(" ")
-                    .toLowerCase();
-
-                return contenido.includes(
-                    texto
-                );
-            }
-        );
-
     paginaRondas = 1;
-    mostrarRondas(
-        filtradas
-    );
+    aplicarFiltrosRondas();
 }
 
 buscador.addEventListener(

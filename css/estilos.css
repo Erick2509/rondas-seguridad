@@ -621,3 +621,63 @@
         order: -1;
     }
 }
+
+
+/* =====================================================
+   FILTROS DE RONDAS
+   ===================================================== */
+.filtros-rondas {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
+    gap: 12px;
+    align-items: end;
+    margin: 14px 0 18px;
+    padding: 16px;
+    border: 1px solid #dfe3e8;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.filtro-ronda {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filtro-ronda label {
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.filtro-ronda input,
+.filtro-ronda select {
+    width: 100%;
+    min-height: 42px;
+    box-sizing: border-box;
+    border: 1px solid #c9d1d9;
+    border-radius: 9px;
+    padding: 8px 10px;
+    background: #fff;
+    font: inherit;
+}
+
+.btn-limpiar-filtros {
+    min-height: 42px;
+    border: 0;
+    border-radius: 9px;
+    padding: 9px 12px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+@media (max-width: 900px) {
+    .filtros-rondas {
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .filtros-rondas {
+        grid-template-columns: 1fr;
+    }
+}
