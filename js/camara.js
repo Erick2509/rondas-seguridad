@@ -11,16 +11,35 @@ import {
 // ELEMENTOS
 // ======================================================
 
-const informacion = document.getElementById("informacion");
-const gps = document.getElementById("gps");
-const seccionFoto = document.getElementById("seccionFoto");
-const fotoInput = document.getElementById("foto");
-const vistaPrevia = document.getElementById("vistaPrevia");
-const canvas = document.getElementById("canvas");
-const estado = document.getElementById("estado");
-const btnRegistrar = document.getElementById("btnRegistrar");
-const btnCompartir = document.getElementById("btnCompartir");
-const error = document.getElementById("error");
+const informacion =
+    document.getElementById("informacion");
+
+const gps =
+    document.getElementById("gps");
+
+const seccionFoto =
+    document.getElementById("seccionFoto");
+
+const fotoInput =
+    document.getElementById("foto");
+
+const vistaPrevia =
+    document.getElementById("vistaPrevia");
+
+const canvas =
+    document.getElementById("canvas");
+
+const estado =
+    document.getElementById("estado");
+
+const btnRegistrar =
+    document.getElementById("btnRegistrar");
+
+const btnCompartir =
+    document.getElementById("btnCompartir");
+
+const error =
+    document.getElementById("error");
 
 
 // ======================================================
@@ -31,7 +50,8 @@ let datosRonda = null;
 
 let ubicacionActual = null;
 
-let direccionActual = "Ubicación no disponible";
+let direccionActual =
+    "Ubicación no disponible";
 
 let imagenFinal = null;
 
@@ -49,7 +69,9 @@ let fechaFoto = null;
 function cargarDatos() {
 
     const datos =
-        sessionStorage.getItem("rondaActual");
+        sessionStorage.getItem(
+            "rondaActual"
+        );
 
 
     if (!datos) {
@@ -90,10 +112,35 @@ function cargarDatos() {
     }
 
 
+    // Compatibilidad con agentes antiguos
+
+    datosRonda.agente.cargo =
+        datosRonda.agente.cargo ||
+        "No registrado";
+
+    datosRonda.agente.turno =
+        datosRonda.agente.turno ||
+        "No registrado";
+
+
+    // ==================================================
+    // INFORMACIÓN MOSTRADA ANTES DE LA FOTO
+    // ==================================================
+
     informacion.innerHTML = `
 
-        <strong>👮 Agente:</strong>
+        <strong>👮 Nombre:</strong>
         ${datosRonda.agente.nombre}
+
+        <br>
+
+        <strong>🦺 Cargo:</strong>
+        ${datosRonda.agente.cargo}
+
+        <br>
+
+        <strong>🕐 Turno:</strong>
+        ${datosRonda.agente.turno}
 
         <br>
 
@@ -118,19 +165,16 @@ function cargarDatos() {
 
 
 // ======================================================
-// 2. GPS EN TIEMPO REAL
-//
-// IMPORTANTE:
-// El GPS ya NO valida ni bloquea la ronda.
-//
-// Solamente mantenemos las coordenadas más recientes
-// para obtener la dirección cuando se toma la foto.
+// 2. GPS
 // ======================================================
 
 function iniciarGPS() {
 
-    // La fotografía puede tomarse inmediatamente.
-    seccionFoto.classList.remove("d-none");
+    // La cámara se habilita inmediatamente.
+
+    seccionFoto.classList.remove(
+        "d-none"
+    );
 
 
     if (!navigator.geolocation) {
@@ -186,7 +230,6 @@ function iniciarGPS() {
 
                     longitud:
                         posicion.coords.longitude
-
                 };
 
 
@@ -207,7 +250,6 @@ function iniciarGPS() {
                     📸 Ya puedes tomar la fotografía.
 
                 `;
-
             },
 
 
@@ -234,7 +276,6 @@ function iniciarGPS() {
                     del celular para registrar la dirección.
 
                 `;
-
             },
 
 
@@ -243,13 +284,12 @@ function iniciarGPS() {
                 maximumAge: 0,
                 timeout: 10000
             }
-
         );
 }
 
 
 // ======================================================
-// 3. CONVERTIR COORDENADAS A DIRECCIÓN
+// 3. OBTENER DIRECCIÓN
 // ======================================================
 
 async function obtenerDireccion(
@@ -265,8 +305,10 @@ async function obtenerDireccion(
             "&addressdetails=1" +
             "&zoom=18" +
             "&accept-language=es" +
-            "&lat=" + encodeURIComponent(latitud) +
-            "&lon=" + encodeURIComponent(longitud);
+            "&lat=" +
+            encodeURIComponent(latitud) +
+            "&lon=" +
+            encodeURIComponent(longitud);
 
 
         const respuesta =
@@ -288,10 +330,6 @@ async function obtenerDireccion(
         const a =
             datos.address || {};
 
-
-        // ----------------------------------------------
-        // CONSTRUIR DIRECCIÓN MÁS LIMPIA
-        // ----------------------------------------------
 
         const calle =
             a.road ||
@@ -336,7 +374,6 @@ async function obtenerDireccion(
         const partes = [];
 
 
-        // Calle + número
         if (calle) {
 
             if (numero) {
@@ -348,9 +385,7 @@ async function obtenerDireccion(
             } else {
 
                 partes.push(calle);
-
             }
-
         }
 
 
@@ -390,15 +425,12 @@ async function obtenerDireccion(
         }
 
 
-        // Si conseguimos una dirección limpia:
         if (partes.length > 0) {
 
             return partes.join(", ");
         }
 
 
-        // Si no, usamos la dirección completa
-        // que devuelve OpenStreetMap.
         if (datos.display_name) {
 
             return datos.display_name;
@@ -438,6 +470,7 @@ async function manejarFoto(event) {
 
 
     if (!archivo) {
+
         return;
     }
 
@@ -457,16 +490,9 @@ async function manejarFoto(event) {
     `;
 
 
-    // Guardamos exactamente el momento
-    // en que se tomó/seleccionó la fotografía.
-
     fechaFoto =
         new Date();
 
-
-    // ----------------------------------------------
-    // OBTENER DIRECCIÓN DE LA POSICIÓN MÁS RECIENTE
-    // ----------------------------------------------
 
     if (ubicacionActual) {
 
@@ -476,20 +502,14 @@ async function manejarFoto(event) {
                 ubicacionActual.latitud,
 
                 ubicacionActual.longitud
-
             );
 
     } else {
 
         direccionActual =
             "Ubicación GPS no disponible";
-
     }
 
-
-    // ----------------------------------------------
-    // CARGAR FOTO
-    // ----------------------------------------------
 
     const lector =
         new FileReader();
@@ -508,13 +528,11 @@ async function manejarFoto(event) {
                     generarImagenFinal(
                         imagen
                     );
-
                 };
 
 
             imagen.src =
                 e.target.result;
-
         };
 
 
@@ -525,7 +543,7 @@ async function manejarFoto(event) {
 
 
 // ======================================================
-// 5. DIVIDIR TEXTO PARA EL CANVAS
+// 5. DIVIDIR TEXTO
 // ======================================================
 
 function escribirTextoEnLineas(
@@ -538,7 +556,7 @@ function escribirTextoEnLineas(
 ) {
 
     const palabras =
-        texto.split(" ");
+        String(texto).split(" ");
 
 
     let linea = "";
@@ -559,11 +577,14 @@ function escribirTextoEnLineas(
 
 
         const medida =
-            ctx.measureText(prueba);
+            ctx.measureText(
+                prueba
+            );
 
 
         if (
-            medida.width > anchoMaximo &&
+            medida.width >
+                anchoMaximo &&
             i > 0
         ) {
 
@@ -575,7 +596,8 @@ function escribirTextoEnLineas(
 
 
             linea =
-                palabras[i] + " ";
+                palabras[i] +
+                " ";
 
 
             posicionY +=
@@ -585,9 +607,7 @@ function escribirTextoEnLineas(
 
             linea =
                 prueba;
-
         }
-
     }
 
 
@@ -615,15 +635,11 @@ function generarImagenFinal(imagen) {
     let ancho =
         imagen.width;
 
-
     let alto =
         imagen.height;
 
 
-    if (
-        ancho >
-        anchoMaximo
-    ) {
+    if (ancho > anchoMaximo) {
 
         const proporcion =
             anchoMaximo / ancho;
@@ -635,20 +651,23 @@ function generarImagenFinal(imagen) {
 
         alto =
             alto * proporcion;
-
     }
 
 
-    // Más espacio porque ahora
-    // mostramos una dirección completa.
+    // Más espacio para:
+    // nombre
+    // cargo
+    // turno
+    // punto
+    // fecha/hora
+    // ubicación
 
     const alturaInfo =
-        350;
+        430;
 
 
     canvas.width =
         ancho;
-
 
     canvas.height =
         alto + alturaInfo;
@@ -658,9 +677,9 @@ function generarImagenFinal(imagen) {
         canvas.getContext("2d");
 
 
-    // ----------------------------------------------
+    // ==================================================
     // FOTO
-    // ----------------------------------------------
+    // ==================================================
 
     ctx.drawImage(
         imagen,
@@ -671,9 +690,9 @@ function generarImagenFinal(imagen) {
     );
 
 
-    // ----------------------------------------------
-    // FONDO
-    // ----------------------------------------------
+    // ==================================================
+    // FONDO DE INFORMACIÓN
+    // ==================================================
 
     ctx.fillStyle =
         "#111827";
@@ -691,59 +710,72 @@ function generarImagenFinal(imagen) {
         "#ffffff";
 
 
-    // ----------------------------------------------
+    // ==================================================
     // TÍTULO
-    // ----------------------------------------------
+    // ==================================================
 
     ctx.font =
         "bold 30px Arial";
 
 
     ctx.fillText(
-        "RONDA DE SEGURIDAD",
+        "🛡️ RONDA DE SEGURIDAD",
         30,
         alto + 45
     );
 
 
-    // ----------------------------------------------
-    // AGENTE
-    //
-    // NO MOSTRAMOS CÓDIGO DEL AGENTE
-    // ----------------------------------------------
-
     ctx.font =
         "22px Arial";
 
 
+    // ==================================================
+    // NOMBRE DEL AGENTE
+    // ==================================================
+
     ctx.fillText(
-        `Agente: ${datosRonda.agente.nombre}`,
+        `👮 ${datosRonda.agente.nombre}`,
         30,
-        alto + 85
+        alto + 90
     );
 
 
-    // ----------------------------------------------
+    // ==================================================
+    // CARGO
+    // ==================================================
+
+    ctx.fillText(
+        `🦺 ${datosRonda.agente.cargo}`,
+        30,
+        alto + 130
+    );
+
+
+    // ==================================================
+    // TURNO
+    // ==================================================
+
+    ctx.fillText(
+        `🕐 ${datosRonda.agente.turno}`,
+        30,
+        alto + 170
+    );
+
+
+    // ==================================================
     // PUNTO
-    // ----------------------------------------------
+    // ==================================================
 
     ctx.fillText(
-        `Punto: ${datosRonda.punto.nombre}`,
+        `📍 ${datosRonda.punto.nombre}`,
         30,
-        alto + 120
+        alto + 210
     );
 
 
-    ctx.fillText(
-        `Código punto: ${datosRonda.punto.codigo}`,
-        30,
-        alto + 155
-    );
-
-
-    // ----------------------------------------------
+    // ==================================================
     // FECHA Y HORA
-    // ----------------------------------------------
+    // ==================================================
 
     const fecha =
         fechaFoto.toLocaleDateString(
@@ -758,51 +790,39 @@ function generarImagenFinal(imagen) {
 
 
     ctx.fillText(
-        `Fecha: ${fecha} - Hora: ${hora}`,
+        `📅 ${fecha}   🕐 ${hora}`,
         30,
-        alto + 190
+        alto + 250
     );
 
 
-    // ----------------------------------------------
+    // ==================================================
     // UBICACIÓN
-    // ----------------------------------------------
+    // ==================================================
 
     ctx.font =
-        "bold 22px Arial";
-
-
-    ctx.fillText(
-        "Ubicación:",
-        30,
-        alto + 230
-    );
-
-
-    ctx.font =
-        "20px Arial";
+        "22px Arial";
 
 
     escribirTextoEnLineas(
 
         ctx,
 
-        direccionActual,
+        `📌 ${direccionActual}`,
 
         30,
 
-        alto + 265,
+        alto + 295,
 
         ancho - 60,
 
-        28
-
+        30
     );
 
 
-    // ----------------------------------------------
+    // ==================================================
     // GENERAR JPG
-    // ----------------------------------------------
+    // ==================================================
 
     canvas.toBlob(
 
@@ -831,6 +851,14 @@ function generarImagenFinal(imagen) {
 
                 <br>
 
+                🦺 ${datosRonda.agente.cargo}
+
+                <br>
+
+                🕐 ${datosRonda.agente.turno}
+
+                <br>
+
                 📍 ${datosRonda.punto.nombre}
 
                 <br>
@@ -838,14 +866,12 @@ function generarImagenFinal(imagen) {
                 📌 ${direccionActual}
 
             `;
-
         },
 
 
         "image/jpeg",
 
         0.88
-
     );
 }
 
@@ -883,14 +909,15 @@ async function registrarRonda() {
     try {
 
         const fechaRegistro =
-            fechaFoto || new Date();
+            fechaFoto ||
+            new Date();
 
 
         const datos = {
 
-            // ------------------------------------------
+            // ==========================================
             // AGENTE
-            // ------------------------------------------
+            // ==========================================
 
             agenteId:
                 datosRonda.agente.id,
@@ -898,10 +925,16 @@ async function registrarRonda() {
             agenteNombre:
                 datosRonda.agente.nombre,
 
+            agenteCargo:
+                datosRonda.agente.cargo,
 
-            // ------------------------------------------
+            agenteTurno:
+                datosRonda.agente.turno,
+
+
+            // ==========================================
             // PUNTO
-            // ------------------------------------------
+            // ==========================================
 
             puntoId:
                 datosRonda.punto.id,
@@ -913,33 +946,30 @@ async function registrarRonda() {
                 datosRonda.punto.nombre,
 
 
-            // ------------------------------------------
-            // FECHA
-            // ------------------------------------------
+            // ==========================================
+            // FECHA / HORA
+            // ==========================================
 
             fecha:
-                fechaRegistro.toLocaleDateString(
-                    "es-PE"
-                ),
-
+                fechaRegistro
+                    .toLocaleDateString(
+                        "es-PE"
+                    ),
 
             hora:
-                fechaRegistro.toLocaleTimeString(
-                    "es-PE"
-                ),
+                fechaRegistro
+                    .toLocaleTimeString(
+                        "es-PE"
+                    ),
 
 
-            // ------------------------------------------
-            // DIRECCIÓN
-            // ------------------------------------------
+            // ==========================================
+            // UBICACIÓN
+            // ==========================================
 
             direccion:
                 direccionActual,
 
-
-            // Guardamos coordenadas internamente
-            // para auditoría, pero NO aparecen
-            // en la foto ni WhatsApp.
 
             latitud:
                 ubicacionActual
@@ -953,25 +983,21 @@ async function registrarRonda() {
                     : null,
 
 
-            // ------------------------------------------
-            // QR
-            // ------------------------------------------
+            // ==========================================
+            // VALIDACIÓN
+            // ==========================================
 
             qrValidado:
                 true,
 
-
             metodoValidacion:
                 "QR_FISICO",
-
 
             estado:
                 "completada",
 
-
             timestamp:
                 serverTimestamp()
-
         };
 
 
@@ -983,7 +1009,6 @@ async function registrarRonda() {
             ),
 
             datos
-
         );
 
 
@@ -991,17 +1016,16 @@ async function registrarRonda() {
             true;
 
 
-        // ----------------------------------------------
-        // DETENER GPS
-        // ----------------------------------------------
+        // Detener GPS
 
         if (
             gpsWatchId !== null
         ) {
 
-            navigator.geolocation.clearWatch(
-                gpsWatchId
-            );
+            navigator.geolocation
+                .clearWatch(
+                    gpsWatchId
+                );
 
 
             gpsWatchId =
@@ -1019,22 +1043,23 @@ async function registrarRonda() {
 
             <br><br>
 
-            👮 Agente:
-            ${datosRonda.agente.nombre}
+            👮 ${datosRonda.agente.nombre}
 
             <br>
 
-            📍 Punto:
-            ${datosRonda.punto.nombre}
+            🦺 ${datosRonda.agente.cargo}
 
             <br>
 
-            📌 Ubicación:
-            ${direccionActual}
+            🕐 ${datosRonda.agente.turno}
 
-            <br><br>
+            <br>
 
-            📱 QR físico: VALIDADO
+            📍 ${datosRonda.punto.nombre}
+
+            <br>
+
+            📌 ${direccionActual}
 
         `;
 
@@ -1049,9 +1074,7 @@ async function registrarRonda() {
         );
 
 
-    } catch (
-        errorFirebase
-    ) {
+    } catch (errorFirebase) {
 
         console.error(
             errorFirebase
@@ -1075,7 +1098,7 @@ async function registrarRonda() {
 
 
 // ======================================================
-// 8. COMPARTIR
+// 8. COMPARTIR EN WHATSAPP
 // ======================================================
 
 btnCompartir.addEventListener(
@@ -1108,26 +1131,24 @@ async function compartirWhatsApp() {
         );
 
 
-    // NO incluimos código del agente.
+    // ==================================================
+    // MENSAJE
+    // ==================================================
 
     const mensaje =
 `🛡️ RONDA DE SEGURIDAD
 
-👮 Agente: ${datosRonda.agente.nombre}
-
-📍 Punto: ${datosRonda.punto.nombre}
-🔲 Código punto: ${datosRonda.punto.codigo}
-
-📅 Fecha: ${fecha}
-🕐 Hora: ${hora}
-
-📌 Ubicación:
-${direccionActual}
-
-📱 QR físico: VALIDADO
-📸 Evidencia registrada`;
+👮 ${datosRonda.agente.nombre}
+🦺 ${datosRonda.agente.cargo}
+🕐 ${datosRonda.agente.turno}
+📍 ${datosRonda.punto.nombre}
+📅 ${fecha}   🕐 ${hora}
+📌 ${direccionActual}`;
 
 
+    // ==================================================
+    // CREAR ARCHIVO DE LA EVIDENCIA
+    // ==================================================
 
     const archivo =
         new File(
@@ -1137,9 +1158,9 @@ ${direccionActual}
             `ronda-${datosRonda.punto.codigo}-${Date.now()}.jpg`,
 
             {
-                type: "image/jpeg"
+                type:
+                    "image/jpeg"
             }
-
         );
 
 
@@ -1160,8 +1181,8 @@ ${direccionActual}
 
                 files:
                     [archivo]
-
             });
+
 
         } else {
 
@@ -1174,9 +1195,7 @@ ${direccionActual}
         }
 
 
-    } catch (
-        errorCompartir
-    ) {
+    } catch (errorCompartir) {
 
         console.log(
             "Compartir cancelado:",
@@ -1216,7 +1235,9 @@ function descargarImagen() {
     setTimeout(
         () => {
 
-            URL.revokeObjectURL(url);
+            URL.revokeObjectURL(
+                url
+            );
 
         },
         1000
@@ -1254,13 +1275,12 @@ window.addEventListener(
             gpsWatchId !== null
         ) {
 
-            navigator.geolocation.clearWatch(
-                gpsWatchId
-            );
+            navigator.geolocation
+                .clearWatch(
+                    gpsWatchId
+                );
         }
-
     }
-
 );
 
 
@@ -1268,9 +1288,7 @@ window.addEventListener(
 // 12. INICIAR
 // ======================================================
 
-if (
-    cargarDatos()
-) {
+if (cargarDatos()) {
 
     iniciarGPS();
 }
