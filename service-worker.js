@@ -1,4 +1,43 @@
-const CACHE_NAME = "rondas-seguridad-v3-actualizacion-tabs";
+
+/* =========================================================
+   FIREBASE CLOUD MESSAGING - ADMINISTRACIÓN
+   ========================================================= */
+importScripts("https://www.gstatic.com/firebasejs/12.0.0/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/12.0.0/firebase-messaging-compat.js");
+
+firebase.initializeApp({
+  apiKey: "AIzaSyDf8abFDocep8kEHa45IJ02r_nBY6X8ops",
+  authDomain: "rondas-seguridad-63ba4.firebaseapp.com",
+  projectId: "rondas-seguridad-63ba4",
+  storageBucket: "rondas-seguridad-63ba4.firebasestorage.app",
+  messagingSenderId: "924206639387",
+  appId: "1:924206639387:web:2e730ce51c54cccb624bbe"
+});
+
+const fcmMessaging = firebase.messaging();
+
+fcmMessaging.onBackgroundMessage((payload) => {
+  // Si FCM envía un payload "notification", el navegador puede mostrarlo.
+  // Para mensajes de datos, mostramos nosotros la notificación.
+  if (payload.notification) return;
+
+  const title = payload.data?.title || "Rondas de Seguridad";
+  const options = {
+    body: payload.data?.body || "Nueva notificación",
+    icon: "/icons/admin-192.png",
+    badge: "/icons/admin-192.png",
+    data: { url: "/admin.html" }
+  };
+  self.registration.showNotification(title, options);
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const destino = event.notification?.data?.url || "/admin.html";
+  event.waitUntil(clients.openWindow(destino));
+});
+
+const CACHE_NAME = "rondas-seguridad-v4-push-admin";
 const APP_SHELL = [
   "/",
   "/index.html",

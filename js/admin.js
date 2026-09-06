@@ -1,3 +1,104 @@
+
+/* =========================================================
+   NOTIFICACIONES PUSH - PWA ADMINISTRACIÓN
+   ========================================================= */
+import {
+  getMessaging,
+  getToken,
+  onMessage,
+  isSupported
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-messaging.js";
+
+const VAPID_PUBLIC_KEY = "BDHsF6Yh-g_REJp45fr5QCLjVfCitfpiy6mt4Kdca9_WtAOdeFh8mJFk-SUVSFcrRIFyAH_1xDrLpbQWPe5wAUA";
+
+async function activarNotificacionesPush() {
+  const btn = document.getElementById("btnPush");
+  const estado = document.getElementById("estadoPush");
+
+  try {
+    if (!(await isSupported())) {
+      throw new Error("Este navegador no es compatible con notificaciones push.");
+    }
+
+    const permiso = await Notification.requestPermission();
+    if (permiso !== "granted") {
+      estado.textContent = "Notificaciones no autorizadas";
+      return;
+    }
+
+    const registro = await navigator.serviceWorker.ready;
+    const messaging = getMessaging();
+
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_PUBLIC_KEY,
+      serviceWorkerRegistration: registro
+    });
+
+    if (!token) {
+      throw new Error("Firebase no devolvió un token para este dispositivo.");
+    }
+
+    // Guardamos el token localmente para poder mostrarlo/copiarlo en la prueba.
+    localStorage.setItem("fcmAdminToken", token);
+
+    estado.textContent = "✅ Notificaciones activadas";
+    btn.textContent = "🔔 NOTIFICACIONES ACTIVADAS";
+    btn.disabled = true;
+
+    const tokenBox = document.getElementById("tokenPush");
+    if (tokenBox) tokenBox.value = token;
+
+  } catch (error) {
+    console.error("Error activando push:", error);
+    estado.textContent = "❌ " + (error?.message || "No se pudieron activar las notificaciones");
+  }
+}
+
+async function prepararPush() {
+  const btn = document.getElementById("btnPush");
+  const estado = document.getElementById("estadoPush");
+  const tokenBox = document.getElementById("tokenPush");
+  const copiar = document.getElementById("copiarTokenPush");
+
+  if (!btn || !estado) return;
+
+  btn.addEventListener("click", activarNotificacionesPush);
+
+  if (copiar) {
+    copiar.addEventListener("click", async () => {
+      const token = localStorage.getItem("fcmAdminToken") || tokenBox?.value || "";
+      if (!token) return;
+      await navigator.clipboard.writeText(token);
+      copiar.textContent = "✅ TOKEN COPIADO";
+      setTimeout(() => copiar.textContent = "📋 COPIAR TOKEN DE PRUEBA", 1600);
+    });
+  }
+
+  const guardado = localStorage.getItem("fcmAdminToken");
+  if (guardado && Notification.permission === "granted") {
+    estado.textContent = "✅ Notificaciones activadas";
+    btn.textContent = "🔔 NOTIFICACIONES ACTIVADAS";
+    btn.disabled = true;
+    if (tokenBox) tokenBox.value = guardado;
+  } else if (Notification.permission === "denied") {
+    estado.textContent = "Notificaciones bloqueadas en este dispositivo";
+  } else {
+    estado.textContent = "Notificaciones todavía no activadas";
+  }
+
+  // Mensajes recibidos mientras Administración está abierta.
+  if (await isSupported()) {
+    const messaging = getMessaging();
+    onMessage(messaging, (payload) => {
+      const titulo = payload.notification?.title || "Rondas de Seguridad";
+      const cuerpo = payload.notification?.body || "Nueva notificación";
+      estado.textContent = "🔔 " + titulo + " — " + cuerpo;
+    });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", prepararPush);
+
 import { db } from "./firebase.js";
 import {
     getAuth, onAuthStateChanged, signOut
