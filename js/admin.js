@@ -151,6 +151,7 @@ import { collection,
     getDoc,
     setDoc,
     updateDoc,
+    deleteDoc,
     serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 
@@ -389,6 +390,11 @@ let nombreQRActual = "";
 
 let agenteEditandoId = null;
 let puntoEditandoId = null;
+
+// Historial: 10 rondas por página para ADMIN y CLIENTE.
+const RONDAS_POR_PAGINA = 10;
+let paginaRondas = 1;
+let rondasVistaActual = [];
 
 
 // =====================================================
@@ -819,6 +825,7 @@ async function cargarRondas() {
         cargando.style.display = "none";
 
         actualizarResumenRondas();
+        paginaRondas = 1;
         mostrarRondas(rondas);
 
     } catch (e) {
@@ -1115,22 +1122,28 @@ function mostrarRondas(
     datos
 ) {
 
-    listaRondas.innerHTML =
-        "";
+    listaRondas.innerHTML = "";
+    rondasVistaActual = Array.isArray(datos) ? datos : [];
 
-    if (
-        datos.length === 0
-    ) {
-
+    if (rondasVistaActual.length === 0) {
         listaRondas.innerHTML =
-            '<div class="sin-resultados">' +
-            'No se encontraron rondas.' +
-            '</div>';
-
+            '<div class="sin-resultados">No se encontraron rondas.</div>';
         return;
     }
 
-    datos.forEach(
+    const totalPaginas = Math.max(
+        1,
+        Math.ceil(rondasVistaActual.length / RONDAS_POR_PAGINA)
+    );
+
+    if (paginaRondas > totalPaginas) paginaRondas = totalPaginas;
+    if (paginaRondas < 1) paginaRondas = 1;
+
+    const inicioPagina = (paginaRondas - 1) * RONDAS_POR_PAGINA;
+    const finPagina = inicioPagina + RONDAS_POR_PAGINA;
+    const datosPagina = rondasVistaActual.slice(inicioPagina, finPagina);
+
+    datosPagina.forEach(
         function (ronda) {
 
             // =========================================
@@ -1192,6 +1205,10 @@ function mostrarRondas(
                 superior.appendChild(
                     estado
                 );
+
+                if (rolActual === "ADMIN") {
+                    superior.appendChild(crearBotonEliminarRonda(ronda));
+                }
 
                 const detalle =
                     document.createElement(
@@ -1344,6 +1361,10 @@ function mostrarRondas(
                 estado
             );
 
+            if (rolActual === "ADMIN") {
+                superior.appendChild(crearBotonEliminarRonda(ronda));
+            }
+
             const detalle =
                 document.createElement(
                     "div"
@@ -1463,6 +1484,117 @@ function mostrarRondas(
             );
         }
     );
+
+    const totalPaginas = Math.max(
+        1,
+        Math.ceil(rondasVistaActual.length / RONDAS_POR_PAGINA)
+    );
+
+    const paginacion = document.createElement("div");
+    paginacion.className = "paginacion-rondas";
+
+    const anterior = document.createElement("button");
+    anterior.type = "button";
+    anterior.className = "btn-actualizar";
+    anterior.textContent = "← ANTERIOR";
+    anterior.disabled = paginaRondas <= 1;
+    anterior.addEventListener("click", function() {
+        if (paginaRondas > 1) {
+            paginaRondas--;
+            mostrarRondas(rondasVistaActual);
+            seccionRondas.scrollIntoView({behavior:"smooth", block:"start"});
+        }
+    });
+
+    const infoPagina = document.createElement("div");
+    infoPagina.className = "info-paginacion";
+    infoPagina.textContent =
+        `Página ${paginaRondas} de ${totalPaginas} · ${rondasVistaActual.length} rondas`;
+
+    const siguiente = document.createElement("button");
+    siguiente.type = "button";
+    siguiente.className = "btn-actualizar";
+    siguiente.textContent = "SIGUIENTE →";
+    siguiente.disabled = paginaRondas >= totalPaginas;
+    siguiente.addEventListener("click", function() {
+        if (paginaRondas < totalPaginas) {
+            paginaRondas++;
+            mostrarRondas(rondasVistaActual);
+            seccionRondas.scrollIntoView({behavior:"smooth", block:"start"});
+        }
+    });
+
+    paginacion.appendChild(anterior);
+    paginacion.appendChild(infoPagina);
+    paginacion.appendChild(siguiente);
+    listaRondas.appendChild(paginacion);
+}
+
+
+// =====================================================
+// ELIMINAR RONDA - SOLO ADMIN
+// =====================================================
+
+function crearBotonEliminarRonda(ronda) {
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.className = "btn-eliminar-ronda";
+    boton.textContent = "🗑️ ELIMINAR";
+    boton.title = "Eliminar esta ronda definitivamente";
+
+    boton.addEventListener("click", async function() {
+        if (rolActual !== "ADMIN") return;
+
+        const agente = ronda.agenteNombre || "Agente";
+        const fecha = fechaRonda(ronda) || ronda.fecha || "";
+        const confirmar = window.confirm(
+            `¿Eliminar definitivamente esta ronda?\n\n${agente}${fecha ? " · " + fecha : ""}\n\nEsta acción no se puede deshacer.`
+        );
+        if (!confirmar) return;
+
+        boton.disabled = true;
+        boton.textContent = "ELIMINANDO...";
+
+        try {
+            // Firestore no elimina subcolecciones automáticamente.
+            // Primero quitamos las validaciones/evidencias y luego la ronda.
+            const validacionesRef = collection(db, "rondas", ronda.id, "validaciones");
+            const validacionesSnap = await getDocs(validacionesRef);
+
+            for (const validacionDoc of validacionesSnap.docs) {
+                await deleteDoc(
+                    doc(db, "rondas", ronda.id, "validaciones", validacionDoc.id)
+                );
+            }
+
+            await deleteDoc(doc(db, "rondas", ronda.id));
+
+            rondas = rondas.filter(function(r) {
+                return r.id !== ronda.id;
+            });
+
+            actualizarResumenRondas();
+
+            const textoBusqueda = buscador.value.trim().toLowerCase();
+            if (textoBusqueda) {
+                filtrarRondas();
+            } else {
+                const totalPaginasNuevo = Math.max(
+                    1,
+                    Math.ceil(rondas.length / RONDAS_POR_PAGINA)
+                );
+                if (paginaRondas > totalPaginasNuevo) paginaRondas = totalPaginasNuevo;
+                mostrarRondas(rondas);
+            }
+        } catch (e) {
+            console.error("Error eliminando ronda:", e);
+            alert("No se pudo eliminar la ronda: " + e.message);
+            boton.disabled = false;
+            boton.textContent = "🗑️ ELIMINAR";
+        }
+    });
+
+    return boton;
 }
 
 
@@ -1479,6 +1611,7 @@ function filtrarRondas() {
 
     if (!texto) {
 
+        paginaRondas = 1;
         mostrarRondas(
             rondas
         );
@@ -1539,6 +1672,7 @@ function filtrarRondas() {
             }
         );
 
+    paginaRondas = 1;
     mostrarRondas(
         filtradas
     );

@@ -37,7 +37,7 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(clients.openWindow(destino));
 });
 
-const CACHE_NAME = "rondas-seguridad-v11-editar-qr";
+const CACHE_NAME = "rondas-seguridad-v12-eliminar-paginacion";
 const APP_SHELL = [
   "/",
   "/index.html",
