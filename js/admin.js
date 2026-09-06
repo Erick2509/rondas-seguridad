@@ -338,76 +338,213 @@ function ocultarMensaje(
 
 
 // =====================================================
+// HISTORIAL DE RONDAS COMPLETAS
+// =====================================================
+
+function fechaDesdeValor(valor) {
+    if (!valor) return null;
+    try {
+        if (typeof valor.toDate === "function") return valor.toDate();
+        const f = new Date(valor);
+        return Number.isNaN(f.getTime()) ? null : f;
+    } catch (e) {
+        return null;
+    }
+}
+
+function fechaRonda(ronda) {
+    const f =
+        fechaDesdeValor(ronda.inicioTimestamp) ||
+        fechaDesdeValor(ronda.timestamp) ||
+        fechaDesdeValor(ronda.horaInicioLocal);
+
+    if (f) return f.toLocaleDateString("es-PE");
+
+    return ronda.fecha || "-";
+}
+
+function horaInicioRonda(ronda) {
+    const f =
+        fechaDesdeValor(ronda.inicioTimestamp) ||
+        fechaDesdeValor(ronda.timestamp) ||
+        fechaDesdeValor(ronda.horaInicioLocal);
+
+    if (f) return f.toLocaleTimeString("es-PE");
+
+    return ronda.hora || "-";
+}
+
+function horaFinRonda(ronda) {
+    const f =
+        fechaDesdeValor(ronda.finTimestamp) ||
+        fechaDesdeValor(ronda.horaFinLocal);
+
+    return f ? f.toLocaleTimeString("es-PE") : "-";
+}
+
+function duracionTexto(segundos) {
+    const total = Number(segundos);
+
+    if (!Number.isFinite(total) || total < 0) {
+        return "-";
+    }
+
+    const horas = Math.floor(total / 3600);
+    const minutos = Math.floor((total % 3600) / 60);
+    const seg = Math.floor(total % 60);
+
+    const partes = [];
+
+    if (horas > 0) partes.push(horas + " h");
+    if (minutos > 0 || horas > 0) partes.push(minutos + " min");
+    partes.push(seg + " s");
+
+    return partes.join(" ");
+}
+
+function esRondaNueva(ronda) {
+    return !!(
+        ronda.tipoRonda ||
+        ronda.inicioTimestamp ||
+        ronda.horaInicioLocal ||
+        ronda.totalValidados !== undefined
+    );
+}
+
+async function cargarValidacionesRonda(rondaId) {
+    const resultado =
+        await getDocs(
+            collection(
+                db,
+                "rondas",
+                rondaId,
+                "validaciones"
+            )
+        );
+
+    const validaciones = [];
+
+    resultado.forEach(
+        function (documento) {
+            validaciones.push({
+                id: documento.id,
+                ...documento.data()
+            });
+        }
+    );
+
+    validaciones.sort(
+        function (a, b) {
+            const oa = Number(a.orden || 0);
+            const ob = Number(b.orden || 0);
+
+            if (oa !== ob) {
+                return oa - ob;
+            }
+
+            const fa =
+                fechaDesdeValor(a.timestamp);
+
+            const fb =
+                fechaDesdeValor(b.timestamp);
+
+            return (
+                (fa ? fa.getTime() : 0) -
+                (fb ? fb.getTime() : 0)
+            );
+        }
+    );
+
+    return validaciones;
+}
+
+
+// =====================================================
 // CARGAR RONDAS
 // =====================================================
 
 async function cargarRondas() {
 
-    error.style.display =
-        "none";
-
-    cargando.style.display =
-        "block";
-
-    listaRondas.innerHTML =
-        "";
+    error.style.display = "none";
+    cargando.style.display = "block";
+    listaRondas.innerHTML = "";
 
     try {
 
-        const consulta =
-            query(
+        // No usamos orderBy("timestamp") porque las nuevas
+        // rondas utilizan inicioTimestamp y las antiguas timestamp.
+        const resultado =
+            await getDocs(
                 collection(
                     db,
                     "rondas"
-                ),
-
-                orderBy(
-                    "timestamp",
-                    "desc"
-                ),
-
-                limit(
-                    100
                 )
             );
 
-
-        const resultado =
-            await getDocs(
-                consulta
-            );
-
-
-        rondas =
-            [];
-
+        const documentos = [];
 
         resultado.forEach(
             function (documento) {
+                documentos.push({
+                    id: documento.id,
+                    ...documento.data()
+                });
+            }
+        );
 
-                rondas.push(
-                    {
-                        id:
-                            documento.id,
+        // Cargar los QR validados de cada ronda nueva.
+        await Promise.all(
+            documentos.map(
+                async function (ronda) {
 
-                        ...documento.data()
+                    if (esRondaNueva(ronda)) {
+                        try {
+                            ronda.validaciones =
+                                await cargarValidacionesRonda(
+                                    ronda.id
+                                );
+                        } catch (e) {
+                            console.error(
+                                "No se pudieron cargar validaciones de " +
+                                ronda.id,
+                                e
+                            );
+
+                            ronda.validaciones = [];
+                        }
+                    } else {
+                        ronda.validaciones = [];
                     }
+                }
+            )
+        );
+
+        documentos.sort(
+            function (a, b) {
+
+                const fa =
+                    fechaDesdeValor(a.inicioTimestamp) ||
+                    fechaDesdeValor(a.timestamp) ||
+                    fechaDesdeValor(a.horaInicioLocal);
+
+                const fb =
+                    fechaDesdeValor(b.inicioTimestamp) ||
+                    fechaDesdeValor(b.timestamp) ||
+                    fechaDesdeValor(b.horaInicioLocal);
+
+                return (
+                    (fb ? fb.getTime() : 0) -
+                    (fa ? fa.getTime() : 0)
                 );
             }
         );
 
+        rondas = documentos;
 
-        cargando.style.display =
-            "none";
-
+        cargando.style.display = "none";
 
         actualizarResumenRondas();
-
-
-        mostrarRondas(
-            rondas
-        );
-
+        mostrarRondas(rondas);
 
     } catch (e) {
 
@@ -416,15 +553,13 @@ async function cargarRondas() {
             e
         );
 
-        cargando.style.display =
-            "none";
+        cargando.style.display = "none";
 
         error.textContent =
             "No se pudieron cargar las rondas: " +
             e.message;
 
-        error.style.display =
-            "block";
+        error.style.display = "block";
     }
 }
 
@@ -438,25 +573,185 @@ function actualizarResumenRondas() {
     totalRondas.textContent =
         rondas.length;
 
-
     const hoy =
-        fechaHoy();
-
+        new Date()
+            .toLocaleDateString(
+                "es-PE"
+            );
 
     const cantidadHoy =
         rondas.filter(
             function (ronda) {
-
-                return (
-                    ronda.fecha ===
-                    hoy
-                );
+                return fechaRonda(ronda) === hoy;
             }
         ).length;
 
-
     rondasHoy.textContent =
         cantidadHoy;
+}
+
+
+// =====================================================
+// MOSTRAR VALIDACIONES
+// =====================================================
+
+function crearBloqueValidaciones(ronda) {
+
+    const bloque =
+        document.createElement(
+            "div"
+        );
+
+    bloque.style.marginTop = "14px";
+    bloque.style.paddingTop = "12px";
+    bloque.style.borderTop =
+        "1px solid #e5e7eb";
+
+    const titulo =
+        document.createElement(
+            "div"
+        );
+
+    titulo.style.fontWeight =
+        "800";
+
+    titulo.style.marginBottom =
+        "10px";
+
+    const cantidad =
+        Array.isArray(
+            ronda.validaciones
+        )
+            ? ronda.validaciones.length
+            : Number(
+                ronda.totalValidados ||
+                0
+            );
+
+    titulo.textContent =
+        "📍 QR VALIDADOS: " +
+        cantidad;
+
+    bloque.appendChild(
+        titulo
+    );
+
+    if (
+        !Array.isArray(
+            ronda.validaciones
+        ) ||
+        ronda.validaciones.length === 0
+    ) {
+
+        const vacio =
+            document.createElement(
+                "div"
+            );
+
+        vacio.className =
+            "punto-fecha";
+
+        vacio.textContent =
+            ronda.estado === "EN_CURSO"
+                ? "Aún no hay QR registrados en esta ronda."
+                : "No hay detalle de QR disponible.";
+
+        bloque.appendChild(
+            vacio
+        );
+
+        return bloque;
+    }
+
+    ronda.validaciones.forEach(
+        function (validacion) {
+
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+            item.style.padding =
+                "9px 0";
+
+            item.style.borderBottom =
+                "1px solid #f1f5f9";
+
+            const principal =
+                document.createElement(
+                    "div"
+                );
+
+            principal.style.fontWeight =
+                "700";
+
+            principal.textContent =
+                "✅ " +
+                (
+                    validacion.puntoCodigo ||
+                    validacion.puntoId ||
+                    "-"
+                ) +
+                " — " +
+                (
+                    validacion.puntoNombre ||
+                    "Punto"
+                );
+
+            const meta =
+                document.createElement(
+                    "div"
+                );
+
+            meta.style.fontSize =
+                "13px";
+
+            meta.style.color =
+                "#64748b";
+
+            const hora =
+                validacion.hora ||
+                (
+                    fechaDesdeValor(
+                        validacion.timestamp
+                    )
+                        ? fechaDesdeValor(
+                            validacion.timestamp
+                        ).toLocaleTimeString(
+                            "es-PE"
+                        )
+                        : "-"
+                );
+
+            meta.textContent =
+                "🕐 " +
+                hora +
+                " · Orden " +
+                (
+                    validacion.orden ??
+                    "-"
+                ) +
+                " · " +
+                (
+                    validacion.funcionQR ||
+                    "PUNTO"
+                );
+
+            item.appendChild(
+                principal
+            );
+
+            item.appendChild(
+                meta
+            );
+
+            bloque.appendChild(
+                item
+            );
+        }
+    );
+
+    return bloque;
 }
 
 
@@ -471,7 +766,6 @@ function mostrarRondas(
     listaRondas.innerHTML =
         "";
 
-
     if (
         datos.length === 0
     ) {
@@ -484,9 +778,131 @@ function mostrarRondas(
         return;
     }
 
-
     datos.forEach(
         function (ronda) {
+
+            // =========================================
+            // COMPATIBILIDAD CON HISTORIAL ANTIGUO
+            // =========================================
+
+            if (!esRondaNueva(ronda)) {
+
+                const tarjeta =
+                    document.createElement(
+                        "div"
+                    );
+
+                tarjeta.className =
+                    "ronda";
+
+                const superior =
+                    document.createElement(
+                        "div"
+                    );
+
+                superior.className =
+                    "ronda-superior";
+
+                const agente =
+                    document.createElement(
+                        "div"
+                    );
+
+                agente.className =
+                    "agente";
+
+                agente.textContent =
+                    "👮 " +
+                    (
+                        ronda.agenteNombre ||
+                        "Agente"
+                    );
+
+                const estado =
+                    document.createElement(
+                        "span"
+                    );
+
+                estado.className =
+                    "estado";
+
+                estado.textContent =
+                    "✅ " +
+                    (
+                        ronda.estado ||
+                        "completada"
+                    );
+
+                superior.appendChild(
+                    agente
+                );
+
+                superior.appendChild(
+                    estado
+                );
+
+                const detalle =
+                    document.createElement(
+                        "div"
+                    );
+
+                detalle.className =
+                    "detalle";
+
+                agregarLinea(
+                    detalle,
+                    "📍 Punto: ",
+                    ronda.puntoNombre ||
+                    "-"
+                );
+
+                agregarLinea(
+                    detalle,
+                    "🔲 Código: ",
+                    ronda.puntoCodigo ||
+                    ronda.puntoId ||
+                    "-"
+                );
+
+                agregarLinea(
+                    detalle,
+                    "📅 Fecha: ",
+                    ronda.fecha ||
+                    "-"
+                );
+
+                agregarLinea(
+                    detalle,
+                    "🕐 Hora: ",
+                    ronda.hora ||
+                    "-"
+                );
+
+                agregarLinea(
+                    detalle,
+                    "📌 Dirección: ",
+                    ronda.direccion ||
+                    "-"
+                );
+
+                tarjeta.appendChild(
+                    superior
+                );
+
+                tarjeta.appendChild(
+                    detalle
+                );
+
+                listaRondas.appendChild(
+                    tarjeta
+                );
+
+                return;
+            }
+
+            // =========================================
+            // NUEVA RONDA AGRUPADA
+            // =========================================
 
             const tarjeta =
                 document.createElement(
@@ -496,7 +912,6 @@ function mostrarRondas(
             tarjeta.className =
                 "ronda";
 
-
             const superior =
                 document.createElement(
                     "div"
@@ -505,22 +920,27 @@ function mostrarRondas(
             superior.className =
                 "ronda-superior";
 
-
-            const agente =
+            const titulo =
                 document.createElement(
                     "div"
                 );
 
-            agente.className =
+            titulo.className =
                 "agente";
 
-            agente.textContent =
-                "👮 " +
-                (
-                    ronda.agenteNombre ||
-                    "Agente"
-                );
+            const iconoTipo =
+                ronda.tipoRonda ===
+                "EXTERNA"
+                    ? "🌳"
+                    : "🏢";
 
+            titulo.textContent =
+                iconoTipo +
+                " RONDA " +
+                (
+                    ronda.tipoRonda ||
+                    "-"
+                );
 
             const estado =
                 document.createElement(
@@ -530,22 +950,39 @@ function mostrarRondas(
             estado.className =
                 "estado";
 
-            estado.textContent =
-                "✅ " +
-                (
-                    ronda.estado ||
-                    "completada"
-                );
+            if (
+                ronda.estado ===
+                "COMPLETADA"
+            ) {
 
+                estado.textContent =
+                    "✅ COMPLETADA";
+
+            } else if (
+                ronda.estado ===
+                "EN_CURSO"
+            ) {
+
+                estado.textContent =
+                    "🟡 EN CURSO";
+
+            } else {
+
+                estado.textContent =
+                    "⚪ " +
+                    (
+                        ronda.estado ||
+                        "SIN ESTADO"
+                    );
+            }
 
             superior.appendChild(
-                agente
+                titulo
             );
 
             superior.appendChild(
                 estado
             );
-
 
             const detalle =
                 document.createElement(
@@ -555,47 +992,83 @@ function mostrarRondas(
             detalle.className =
                 "detalle";
 
-
             agregarLinea(
                 detalle,
-                "📍 Punto: ",
-                ronda.puntoNombre ||
+                "👮 Agente: ",
+                ronda.agenteNombre ||
                 "-"
             );
 
-
             agregarLinea(
                 detalle,
-                "🔲 Código: ",
-                ronda.puntoCodigo ||
-                ronda.puntoId ||
+                "🦺 Cargo: ",
+                ronda.agenteCargo ||
                 "-"
             );
 
+            agregarLinea(
+                detalle,
+                "🕐 Turno: ",
+                ronda.agenteTurno ||
+                "-"
+            );
 
             agregarLinea(
                 detalle,
                 "📅 Fecha: ",
-                ronda.fecha ||
-                "-"
+                fechaRonda(
+                    ronda
+                )
             );
-
 
             agregarLinea(
                 detalle,
-                "🕐 Hora: ",
-                ronda.hora ||
-                "-"
+                "🟢 Inicio: ",
+                horaInicioRonda(
+                    ronda
+                )
             );
-
 
             agregarLinea(
                 detalle,
-                "📌 Dirección: ",
-                ronda.direccion ||
-                "-"
+                "🔴 Final: ",
+                ronda.estado ===
+                    "COMPLETADA"
+                    ? horaFinRonda(
+                        ronda
+                    )
+                    : "-"
             );
 
+            agregarLinea(
+                detalle,
+                "⏱️ Duración: ",
+                ronda.estado ===
+                    "COMPLETADA"
+                    ? duracionTexto(
+                        ronda.duracionSegundos
+                    )
+                    : "En curso"
+            );
+
+            agregarLinea(
+                detalle,
+                "🔢 Total QR: ",
+                Array.isArray(
+                    ronda.validaciones
+                )
+                    ? ronda.validaciones.length
+                    : (
+                        ronda.totalValidados ||
+                        0
+                    )
+            );
+
+            detalle.appendChild(
+                crearBloqueValidaciones(
+                    ronda
+                )
+            );
 
             tarjeta.appendChild(
                 superior
@@ -624,7 +1097,6 @@ function filtrarRondas() {
             .trim()
             .toLowerCase();
 
-
     if (!texto) {
 
         mostrarRondas(
@@ -634,25 +1106,50 @@ function filtrarRondas() {
         return;
     }
 
-
     const filtradas =
         rondas.filter(
             function (ronda) {
 
+                const qr =
+                    Array.isArray(
+                        ronda.validaciones
+                    )
+                        ? ronda.validaciones
+                            .map(
+                                function (v) {
+                                    return [
+                                        v.puntoCodigo,
+                                        v.puntoId,
+                                        v.puntoNombre,
+                                        v.funcionQR,
+                                        v.orden
+                                    ]
+                                    .filter(Boolean)
+                                    .join(" ");
+                                }
+                            )
+                            .join(" ")
+                        : "";
+
                 const contenido =
                     [
                         ronda.agenteNombre,
+                        ronda.agenteCargo,
+                        ronda.agenteTurno,
+                        ronda.tipoRonda,
+                        ronda.estado,
+                        fechaRonda(ronda),
                         ronda.puntoNombre,
                         ronda.puntoCodigo,
                         ronda.puntoId,
                         ronda.fecha,
                         ronda.hora,
-                        ronda.direccion
+                        ronda.direccion,
+                        qr
                     ]
                     .filter(Boolean)
                     .join(" ")
                     .toLowerCase();
-
 
                 return contenido.includes(
                     texto
@@ -660,18 +1157,15 @@ function filtrarRondas() {
             }
         );
 
-
     mostrarRondas(
         filtradas
     );
 }
 
-
 buscador.addEventListener(
     "input",
     filtrarRondas
 );
-
 
 btnActualizar.addEventListener(
     "click",
