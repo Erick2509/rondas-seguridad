@@ -634,6 +634,25 @@
                 autocomplete="off"
             >
 
+            <label for="qrTipoRonda">Tipo de ronda</label>
+            <select id="qrTipoRonda">
+                <option value="">Seleccionar tipo de ronda</option>
+                <option value="EXTERNA">🌳 Ronda Externa</option>
+                <option value="INTERNA">🏢 Ronda Interna</option>
+            </select>
+
+            <label for="qrFuncion">Función del QR</label>
+            <select id="qrFuncion">
+                <option value="">Seleccionar función</option>
+                <option value="INICIO">🟢 INICIO</option>
+                <option value="PUNTO">📍 PUNTO</option>
+                <option value="FINAL">🔴 FINAL</option>
+            </select>
+
+            <label for="qrOrden">Orden dentro de la ronda</label>
+            <input id="qrOrden" type="number" min="1" step="1" placeholder="Ejemplo: 1">
+            <div class="nota">El orden no puede repetirse dentro de la misma ronda.</div>
+
             <button
                 id="btnGenerarQR"
                 class="btn-principal"
