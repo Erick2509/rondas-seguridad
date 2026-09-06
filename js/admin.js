@@ -3332,9 +3332,52 @@ let unsubscribeNotificaciones=null, notificacionesRondas=[];
 const STORAGE_LEIDAS="rondas_notificaciones_leidas_v1";
 function idsLeidos(){try{return new Set(JSON.parse(localStorage.getItem(STORAGE_LEIDAS)||"[]"))}catch(e){return new Set()}}
 function guardarLeidos(s){localStorage.setItem(STORAGE_LEIDAS,JSON.stringify(Array.from(s).slice(-500)))}
-function fechaNotif(r){const t=r.cancelacionTimestamp||r.finTimestamp||r.inicioTimestamp||r.timestamp;if(t&&typeof t.toMillis==="function")return t.toMillis();const s=r.horaCancelacionLocal||r.horaFinLocal||r.horaInicioLocal;const n=s?Date.parse(s):0;return Number.isFinite(n)?n:0}
-function crearNotif(d){const r=d.data()||{};let tipo="INICIO",titulo="🟢 Ronda iniciada";if(r.estado==="COMPLETADA"){tipo="FINAL";titulo="✅ Ronda finalizada"}else if(r.estado==="INCOMPLETA"){tipo="INCOMPLETA";titulo="🔴 Ronda incompleta"}return{id:d.id+":"+tipo,titulo,detalle:`${r.tipoRonda||"RONDA"} · ${r.agenteNombre||r.nombreAgente||r.agente||"Agente"}`,ms:fechaNotif(r)}}
+function timestampMs(valor, respaldo){
+    if(valor && typeof valor.toMillis==="function") return valor.toMillis();
+    const n = respaldo ? Date.parse(respaldo) : 0;
+    return Number.isFinite(n) ? n : 0;
+}
+
+function crearNotifs(d){
+    const r=d.data()||{};
+    const agente=r.agenteNombre||r.nombreAgente||r.agente||"Agente";
+    const ronda=r.tipoRonda||"RONDA";
+    const detalle=`${ronda} · ${agente}`;
+    const eventos=[];
+
+    // El inicio siempre se conserva como una notificación independiente.
+    eventos.push({
+        id:d.id+":INICIO",
+        titulo:"🟢 Ronda iniciada",
+        detalle,
+        ms:timestampMs(r.inicioTimestamp||r.timestamp, r.horaInicioLocal)
+    });
+
+    // Si después se completa, se agrega otra notificación.
+    if(r.estado==="COMPLETADA"){
+        eventos.push({
+            id:d.id+":FINAL",
+            titulo:"✅ Ronda finalizada",
+            detalle,
+            ms:timestampMs(r.finTimestamp, r.horaFinLocal)
+        });
+    }
+
+    // Si después se cancela, se agrega otra notificación.
+    if(r.estado==="INCOMPLETA"){
+        eventos.push({
+            id:d.id+":INCOMPLETA",
+            titulo:"🔴 Ronda incompleta",
+            detalle: r.motivoCancelacion
+                ? `${detalle} · Motivo: ${r.motivoCancelacion}`
+                : detalle,
+            ms:timestampMs(r.cancelacionTimestamp, r.horaCancelacionLocal)
+        });
+    }
+
+    return eventos;
+}
 function renderNotifs(){const l=document.getElementById("listaNotificaciones"),c=document.getElementById("contadorNotificaciones");if(!l||!c)return;const le=idsLeidos(),n=notificacionesRondas.filter(x=>!le.has(x.id)).length;c.textContent=n>99?"99+":String(n);c.hidden=n===0;l.innerHTML="";if(!notificacionesRondas.length){l.innerHTML='<div class="notificacion-vacia">No hay notificaciones.</div>';return}notificacionesRondas.forEach(x=>{const e=document.createElement("div");e.className="notificacion-item"+(le.has(x.id)?"":" no-leida");e.innerHTML=`<div class="notificacion-titulo">${x.titulo}</div><div class="notificacion-detalle">${x.detalle}</div><div class="notificacion-hora">${x.ms?new Date(x.ms).toLocaleString("es-PE"):""}</div>`;e.onclick=()=>{const s=idsLeidos();s.add(x.id);guardarLeidos(s);renderNotifs()};l.appendChild(e)})}
-function iniciarNotificacionesRondas(){if(unsubscribeNotificaciones)unsubscribeNotificaciones();unsubscribeNotificaciones=onSnapshot(collection(db,"rondas"),s=>{notificacionesRondas=s.docs.map(crearNotif).sort((a,b)=>b.ms-a.ms).slice(0,50);renderNotifs()},e=>console.error("Notificaciones:",e))}
+function iniciarNotificacionesRondas(){if(unsubscribeNotificaciones)unsubscribeNotificaciones();unsubscribeNotificaciones=onSnapshot(collection(db,"rondas"),s=>{notificacionesRondas=s.docs.flatMap(crearNotifs).sort((a,b)=>b.ms-a.ms).slice(0,50);renderNotifs()},e=>console.error("Notificaciones:",e))}
 document.addEventListener("DOMContentLoaded",()=>{const b=document.getElementById("btnNotificaciones"),p=document.getElementById("panelNotificaciones"),m=document.getElementById("btnMarcarLeidas");if(b&&p)b.onclick=e=>{e.stopPropagation();p.hidden=!p.hidden};document.addEventListener("click",e=>{if(p&&!p.hidden&&!p.contains(e.target)&&e.target!==b)p.hidden=true});if(m)m.onclick=()=>{const s=idsLeidos();notificacionesRondas.forEach(x=>s.add(x.id));guardarLeidos(s);renderNotifs()}}); 
 onAuthStateChanged(auth,u=>{if(u)iniciarNotificacionesRondas();else if(unsubscribeNotificaciones){unsubscribeNotificaciones();unsubscribeNotificaciones=null}});
