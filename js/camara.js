@@ -1,3 +1,16 @@
+
+async function avisarPush(tipoEvento, rondaId) {
+  try {
+    await fetch("/api/notificar-ronda", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tipoEvento, rondaId })
+    });
+  } catch (e) {
+    console.warn("El punto se guardó, pero no se pudo solicitar la notificación:", e);
+  }
+}
+
 import { db } from "./firebase.js";
 import {
   doc,collection,addDoc,updateDoc,serverTimestamp,increment
@@ -108,6 +121,7 @@ async function registrar(){
       cambios.duracionSegundos=Math.max(0,Math.round((fin-inicio)/1000));
     }
     await updateDoc(doc(db,"rondas",datosRonda.rondaId),cambios);
+    if (esFinal) avisarPush("COMPLETADA", datosRonda.rondaId);
     r.ultimoOrden=Number(datosRonda.punto.orden);r.ultimoPuntoCodigo=datosRonda.punto.codigo;r.totalValidados=Number(r.totalValidados||0)+1;
     if(esFinal)r.finalizada=true;
     guardarActiva(r);registrado=true;

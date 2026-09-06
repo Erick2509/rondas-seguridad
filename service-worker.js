@@ -37,7 +37,7 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(clients.openWindow(destino));
 });
 
-const CACHE_NAME = "rondas-seguridad-v4-push-admin";
+const CACHE_NAME = "rondas-seguridad-v6-gratis-vercel";
 const APP_SHELL = [
   "/",
   "/index.html",

@@ -1,3 +1,16 @@
+
+async function avisarPush(tipoEvento, rondaId) {
+    try {
+        await fetch("/api/notificar-ronda", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tipoEvento, rondaId })
+        });
+    } catch (e) {
+        console.warn("La ronda se guardó, pero no se pudo solicitar la notificación:", e);
+    }
+}
+
 import { db } from "./firebase.js";
 import {
     doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs
@@ -153,6 +166,7 @@ async function iniciar() {
     });
     const r = { rondaId: ref.id, agente: a, tipoRonda: punto.tipoRonda, inicio: new Date().toISOString(), ultimoOrden: 0, totalValidados: 0, ultimoPuntoCodigo: null };
     guardarActiva(r);
+    avisarPush("INICIO", ref.id);
     sessionStorage.setItem("rondaActual", JSON.stringify({ rondaId: ref.id, agente: a, punto, tipoRonda: punto.tipoRonda, inicio: r.inicio }));
     location.href = "camara.html";
 }

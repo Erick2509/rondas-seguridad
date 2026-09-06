@@ -84,6 +84,7 @@ btnCancelarRonda.addEventListener("click",async()=>{
   try{
     const fin=new Date(),inicio=new Date(r.inicio);
     await updateDoc(doc(db,"rondas",r.rondaId),{estado:"INCOMPLETA",cancelacionTimestamp:serverTimestamp(),horaCancelacionLocal:fin.toISOString(),duracionSegundos:Math.max(0,Math.round((fin-inicio)/1000)),motivoCancelacion:motivo});
+    fetch("/api/notificar-ronda",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tipoEvento:"INCOMPLETA",rondaId:r.rondaId})}).catch(()=>{});
     localStorage.removeItem("rondaActiva"); sessionStorage.removeItem("rondaActiva"); sessionStorage.removeItem("rondaActual");
     alert("Ronda cancelada. Quedó registrada como INCOMPLETA."); location.reload();
   }catch(e){alert("No se pudo cancelar la ronda: "+(e.message||e));btnCancelarRonda.disabled=false;}

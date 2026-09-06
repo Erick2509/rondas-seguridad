@@ -20,6 +20,11 @@ async function activarNotificacionesPush() {
       throw new Error("Este navegador no es compatible con notificaciones push.");
     }
 
+    const user = auth.currentUser;
+    if (!user || !rolActual || !["ADMIN", "SUPERVISORA"].includes(rolActual)) {
+      throw new Error("Debes iniciar sesión como ADMIN o SUPERVISORA.");
+    }
+
     const permiso = await Notification.requestPermission();
     if (permiso !== "granted") {
       estado.textContent = "Notificaciones no autorizadas";
@@ -38,15 +43,31 @@ async function activarNotificacionesPush() {
       throw new Error("Firebase no devolvió un token para este dispositivo.");
     }
 
-    // Guardamos el token localmente para poder mostrarlo/copiarlo en la prueba.
-    localStorage.setItem("fcmAdminToken", token);
+    let deviceId = localStorage.getItem("pushDeviceId");
+    if (!deviceId) {
+      deviceId = (crypto.randomUUID ? crypto.randomUUID() :
+        Date.now().toString(36) + Math.random().toString(36).slice(2));
+      localStorage.setItem("pushDeviceId", deviceId);
+    }
 
-    estado.textContent = "✅ Notificaciones activadas";
+    const docId = `${user.uid}_${deviceId}`;
+
+    await setDoc(doc(db, "dispositivosPush", docId), {
+      uid: user.uid,
+      correo: user.email || "",
+      rol: rolActual,
+      token,
+      activo: true,
+      plataforma: navigator.userAgent || "",
+      actualizadoEn: serverTimestamp()
+    }, { merge: true });
+
+    localStorage.setItem("fcmAdminToken", token);
+    localStorage.setItem("pushDocId", docId);
+
+    estado.textContent = "✅ Notificaciones automáticas activadas";
     btn.textContent = "🔔 NOTIFICACIONES ACTIVADAS";
     btn.disabled = true;
-
-    const tokenBox = document.getElementById("tokenPush");
-    if (tokenBox) tokenBox.value = token;
 
   } catch (error) {
     console.error("Error activando push:", error);
@@ -57,29 +78,16 @@ async function activarNotificacionesPush() {
 async function prepararPush() {
   const btn = document.getElementById("btnPush");
   const estado = document.getElementById("estadoPush");
-  const tokenBox = document.getElementById("tokenPush");
-  const copiar = document.getElementById("copiarTokenPush");
 
   if (!btn || !estado) return;
 
   btn.addEventListener("click", activarNotificacionesPush);
 
-  if (copiar) {
-    copiar.addEventListener("click", async () => {
-      const token = localStorage.getItem("fcmAdminToken") || tokenBox?.value || "";
-      if (!token) return;
-      await navigator.clipboard.writeText(token);
-      copiar.textContent = "✅ TOKEN COPIADO";
-      setTimeout(() => copiar.textContent = "📋 COPIAR TOKEN DE PRUEBA", 1600);
-    });
-  }
-
   const guardado = localStorage.getItem("fcmAdminToken");
   if (guardado && Notification.permission === "granted") {
-    estado.textContent = "✅ Notificaciones activadas";
+    estado.textContent = "✅ Notificaciones automáticas activadas";
     btn.textContent = "🔔 NOTIFICACIONES ACTIVADAS";
     btn.disabled = true;
-    if (tokenBox) tokenBox.value = guardado;
   } else if (Notification.permission === "denied") {
     estado.textContent = "Notificaciones bloqueadas en este dispositivo";
   } else {
@@ -201,7 +209,7 @@ async function resolverAcceso(user) {
     const rolSesion=document.getElementById("rolSesion");
     const correoSesion=document.getElementById("correoSesion");
     if(rolSesion) rolSesion.textContent =
-        rol === "ADMIN" ? "👨‍💻 ADMINISTRADOR" : "👩‍💼 SUPERVISORA · SOLO LECTURA";
+        rol === "ADMIN" ? "👨‍💻 ADMINISTRADOR" : "👩‍💼 SUPERVISORA";
     if(correoSesion) correoSesion.textContent = user.email || "";
 
     if (rol === "SUPERVISORA") {
@@ -1779,56 +1787,78 @@ function canvasQRConMargen() {
 // DESCARGAR QR
 // =====================================================
 
-function descargarQR() {
+async function descargarQR() {
 
-    const canvasFinal =
-        canvasQRConMargen();
-
+    const canvasFinal = canvasQRConMargen();
 
     if (!canvasFinal) {
-
-        mostrarMensaje(
-            qrError,
-            "Primero crea o selecciona un QR."
-        );
-
+        mostrarMensaje(qrError, "Primero crea o selecciona un QR.");
         return;
     }
 
+    const nombreArchivo = "QR_" + codigoQRActual + ".png";
 
-    const enlace =
-        document.createElement(
-            "a"
+    const blob = await new Promise((resolve) => {
+        canvasFinal.toBlob(resolve, "image/png");
+    });
+
+    if (!blob) {
+        mostrarMensaje(qrError, "No se pudo preparar la imagen del QR.");
+        return;
+    }
+
+    const archivo = new File([blob], nombreArchivo, { type: "image/png" });
+    const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    // En iPhone/iPad intentamos primero la hoja de compartir del sistema.
+    // En Android también funciona en navegadores compatibles.
+    try {
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [archivo] })) {
+            await navigator.share({
+                files: [archivo],
+                title: "QR " + codigoQRActual,
+                text: nombreQRActual || ("QR " + codigoQRActual)
+            });
+            mostrarMensaje(qrError, "✅ QR preparado para guardar o compartir.", true);
+            return;
+        }
+    } catch (e) {
+        if (e && e.name === "AbortError") return;
+        console.warn("No se pudo usar compartir archivos:", e);
+    }
+
+    const url = URL.createObjectURL(blob);
+
+    // iOS no siempre respeta el atributo download. Abrimos la imagen para
+    // que se pueda mantener pulsada y elegir Guardar en Fotos.
+    if (esIOS) {
+        const nueva = window.open(url, "_blank");
+        if (!nueva) {
+            location.href = url;
+        }
+        mostrarMensaje(
+            qrError,
+            "📱 En iPhone: mantén pulsada la imagen del QR y elige Guardar en Fotos.",
+            true
         );
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        return;
+    }
 
-
-    enlace.href =
-        canvasFinal.toDataURL(
-            "image/png"
-        );
-
-
-    enlace.download =
-        "QR_" +
-        codigoQRActual +
-        ".png";
-
-
-    document.body.appendChild(
-        enlace
-    );
-
-
+    // Android / escritorio: descarga directa.
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = nombreArchivo;
+    document.body.appendChild(enlace);
     enlace.click();
-
     enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+    mostrarMensaje(qrError, "✅ QR guardado/descargado.", true);
 }
 
-
-btnDescargarQR.addEventListener(
-    "click",
-    descargarQR
-);
+btnDescargarQR.addEventListener("click", descargarQR);
 
 
 // =====================================================

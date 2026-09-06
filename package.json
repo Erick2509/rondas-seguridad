@@ -1,0 +1,7 @@
+{
+  "name": "rondas-seguridad",
+  "private": true,
+  "dependencies": {
+    "firebase-admin": "^13.4.0"
+  }
+}
