@@ -1,562 +1,96 @@
 import { db } from "./firebase.js";
-
 import {
-    doc,
-    getDoc
+  doc,getDoc,collection,addDoc,serverTimestamp,query,where,getDocs
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
+const params=new URLSearchParams(location.search);
+const codigoURL=(params.get("punto")||"").trim().toUpperCase();
+const $=id=>document.getElementById(id);
+const codigoPunto=$("codigoPunto"),estadoPunto=$("estadoPunto"),infoPunto=$("infoPunto");
+const codigoAgente=$("codigoAgente"),formularioAgente=$("formularioAgente"),btnContinuar=$("btnContinuar");
+const mensaje=$("mensaje"),error=$("error"),mensajeError=$("mensajeError"),infoRonda=$("infoRonda");
+let punto=null;
 
-// ======================================================
-// LEER PUNTO DESDE URL
-// ======================================================
+function activa(){try{return JSON.parse(sessionStorage.getItem("rondaActiva")||"null");}catch(e){return null;}}
+function msg(tipo,texto){mensaje.className="alert alert-"+tipo+" mt-3";mensaje.textContent=texto;mensaje.classList.remove("d-none");}
+function err(texto){mensajeError.textContent=texto;error.classList.remove("d-none");}
+function limpiar(){mensaje.classList.add("d-none");error.classList.add("d-none");}
+function guardarActiva(r){sessionStorage.setItem("rondaActiva",JSON.stringify(r));}
 
-const parametros =
-    new URLSearchParams(
-        window.location.search
-    );
-
-const codigoPuntoURL =
-    parametros.get("punto");
-
-
-// ======================================================
-// ELEMENTOS HTML
-// ======================================================
-
-const infoPunto =
-    document.getElementById("infoPunto");
-
-const codigoPuntoElemento =
-    document.getElementById("codigoPunto");
-
-const estadoPunto =
-    document.getElementById("estadoPunto");
-
-const codigoAgente =
-    document.getElementById("codigoAgente");
-
-const btnContinuar =
-    document.getElementById("btnContinuar");
-
-const mensaje =
-    document.getElementById("mensaje");
-
-const error =
-    document.getElementById("error");
-
-const mensajeError =
-    document.getElementById("mensajeError");
-
-
-// ======================================================
-// VARIABLES
-// ======================================================
-
-let puntoActual = null;
-let agenteActual = null;
-let promesaPunto = null;
-
-
-// ======================================================
-// MENSAJES
-// ======================================================
-
-function mostrarMensaje(tipo, texto) {
-
-    mensaje.className =
-        "alert alert-" +
-        tipo +
-        " mt-3";
-
-    mensaje.textContent = texto;
-
-    mensaje.classList.remove("d-none");
+async function cargarPunto(){
+  if(!/^P\d+$/.test(codigoURL))throw new Error("Código de punto inválido.");
+  const snap=await getDoc(doc(db,"puntos",codigoURL));
+  if(!snap.exists())throw new Error("El punto de control no existe.");
+  const d=snap.data();
+  if(d.activo!==true)throw new Error("Este punto está desactivado.");
+  punto={id:snap.id,codigo:d.codigo||snap.id,nombre:d.nombre||snap.id,tipoRonda:d.tipoRonda||null,funcionQR:d.funcionQR||null,orden:Number(d.orden||0)};
+  if(!punto.tipoRonda||!["INICIO","PUNTO","FINAL"].includes(punto.funcionQR)||!punto.orden)throw new Error("Este QR todavía no tiene tipo, función u orden configurado.");
+  codigoPunto.textContent=punto.nombre;
+  estadoPunto.innerHTML=`Código: <strong>${punto.codigo}</strong><br>Ronda: <strong>${punto.tipoRonda}</strong> · Función: <strong>${punto.funcionQR}</strong> · Orden: <strong>${punto.orden}</strong>`;
+  infoPunto.className="alert alert-success";
 }
 
-
-function ocultarMensaje() {
-
-    mensaje.classList.add("d-none");
+async function agente(codigo){
+  const c=String(codigo).trim();
+  if(!c)throw new Error("Ingresa el código del agente.");
+  const s=await getDoc(doc(db,"agentes",c));
+  if(!s.exists())throw new Error("Código de agente no válido.");
+  const d=s.data();
+  if(d.activo!==true)throw new Error("Este agente está desactivado.");
+  return {id:s.id,codigo:d.codigo||c,nombre:d.nombre||"Agente",cargo:d.cargo||"No registrado",turno:d.turno||"No registrado"};
 }
 
-
-function mostrarError(texto) {
-
-    mensajeError.textContent = texto;
-
-    error.classList.remove("d-none");
+async function puntoEsperado(tipo,orden){
+  const q=query(collection(db,"puntos"),where("tipoRonda","==",tipo),where("orden","==",orden));
+  const s=await getDocs(q);
+  let x=null;s.forEach(d=>{if(d.data().activo===true)x={id:d.id,...d.data()};});
+  return x;
 }
 
-
-function ocultarError() {
-
-    error.classList.add("d-none");
-}
-
-
-// ======================================================
-// MOSTRAR PUNTO INMEDIATAMENTE
-// ======================================================
-
-function mostrarPuntoInicial() {
-
-    if (!codigoPuntoURL) {
-
-        codigoPuntoElemento.textContent =
-            "No identificado";
-
-        estadoPunto.textContent =
-            "Debes escanear el QR del punto.";
-
-        infoPunto.className =
-            "alert alert-danger";
-
-        mostrarError(
-            "No se recibió ningún código de punto."
-        );
-
-        codigoAgente.disabled = true;
-        btnContinuar.disabled = true;
-
-        return false;
-    }
-
-
-    codigoPuntoElemento.textContent =
-        codigoPuntoURL;
-
-    estadoPunto.textContent =
-        "Cargando nombre del punto...";
-
-    infoPunto.className =
-        "alert alert-info";
-
-
-    // El agente puede escribir inmediatamente
-
-    codigoAgente.disabled = false;
-    btnContinuar.disabled = false;
-
+async function preparar(){
+  await cargarPunto();
+  const r=activa();
+  if(!r){
+    if(punto.funcionQR!=="INICIO")throw new Error("No hay una ronda activa. Debes escanear primero el QR de INICIO.");
+    formularioAgente.classList.remove("d-none");
     codigoAgente.focus();
+    return;
+  }
+  formularioAgente.classList.add("d-none");
+  infoRonda.classList.remove("d-none");
+  infoRonda.innerHTML=`🔄 <strong>RONDA ${r.tipoRonda} EN CURSO</strong><br>👮 ${r.agente.nombre}<br>🦺 ${r.agente.cargo}<br>🕐 ${r.agente.turno}`;
 
-    return true;
+  if(punto.tipoRonda!==r.tipoRonda)throw new Error(`Esta ronda es ${r.tipoRonda}. El QR escaneado pertenece a ${punto.tipoRonda}.`);
+  const esperado=Number(r.ultimoOrden||0)+1;
+  if(punto.orden!==esperado){
+    const p=await puntoEsperado(r.tipoRonda,esperado);
+    throw new Error(`QR fuera de secuencia. Debes validar primero ${p?(p.codigo||p.id)+" - "+(p.nombre||"Punto"):"el punto de orden "+esperado}.`);
+  }
+  sessionStorage.setItem("rondaActual",JSON.stringify({rondaId:r.rondaId,agente:r.agente,punto,tipoRonda:r.tipoRonda,inicio:r.inicio}));
+  setTimeout(()=>location.href="camara.html",700);
 }
 
-
-// ======================================================
-// CONSULTAR PUNTO
-// ======================================================
-
-async function consultarPunto() {
-
-    try {
-
-        const referencia =
-            doc(
-                db,
-                "puntos",
-                codigoPuntoURL
-            );
-
-        const documento =
-            await getDoc(referencia);
-
-
-        if (!documento.exists()) {
-
-            throw new Error(
-                "El punto de control no existe."
-            );
-        }
-
-
-        const punto =
-            documento.data();
-
-
-        if (punto.activo !== true) {
-
-            throw new Error(
-                "Este punto de control está desactivado."
-            );
-        }
-
-
-        puntoActual = {
-
-            id:
-                documento.id,
-
-            codigo:
-                punto.codigo ||
-                codigoPuntoURL,
-
-            nombre:
-                punto.nombre ||
-                codigoPuntoURL,
-
-            latitud:
-                punto.latitud ?? null,
-
-            longitud:
-                punto.longitud ?? null,
-
-            radioMetros:
-                punto.radioMetros ?? null
-        };
-
-
-        codigoPuntoElemento.textContent =
-            puntoActual.nombre;
-
-
-        estadoPunto.innerHTML = `
-
-            Código:
-            <strong>
-                ${puntoActual.codigo}
-            </strong>
-
-        `;
-
-
-        infoPunto.className =
-            "alert alert-success";
-
-
-        return puntoActual;
-
-
-    } catch (errorFirebase) {
-
-        console.error(
-            "ERROR PUNTO:",
-            errorFirebase
-        );
-
-
-        infoPunto.className =
-            "alert alert-danger";
-
-
-        codigoPuntoElemento.textContent =
-            codigoPuntoURL;
-
-
-        estadoPunto.textContent =
-            errorFirebase.message;
-
-
-        mostrarError(
-            errorFirebase.message
-        );
-
-
-        throw errorFirebase;
-    }
+async function iniciar(){
+  limpiar();
+  const a=await agente(codigoAgente.value);
+  if(punto.funcionQR!=="INICIO")throw new Error("La ronda debe comenzar con un QR configurado como INICIO.");
+  const ref=await addDoc(collection(db,"rondas"),{
+    agenteId:a.id,agenteNombre:a.nombre,agenteCargo:a.cargo,agenteTurno:a.turno,
+    tipoRonda:punto.tipoRonda,estado:"EN_CURSO",
+    inicioQrCodigo:punto.codigo,horaInicioLocal:new Date().toISOString(),
+    inicioTimestamp:serverTimestamp(),totalValidados:0
+  });
+  const r={rondaId:ref.id,agente:a,tipoRonda:punto.tipoRonda,inicio:new Date().toISOString(),ultimoOrden:0,totalValidados:0,ultimoPuntoCodigo:null};
+  guardarActiva(r);
+  sessionStorage.setItem("rondaActual",JSON.stringify({rondaId:ref.id,agente:a,punto,tipoRonda:punto.tipoRonda,inicio:r.inicio}));
+  location.href="camara.html";
 }
 
-
-// ======================================================
-// INICIAR CONSULTA DEL PUNTO
-// ======================================================
-
-function iniciarCargaPunto() {
-
-    promesaPunto =
-        consultarPunto();
-
-    promesaPunto.catch(
-        () => {}
-    );
-}
-
-
-// ======================================================
-// CONSULTAR AGENTE
-// ======================================================
-
-async function consultarAgente(codigo) {
-
-    const codigoLimpio =
-        String(codigo).trim();
-
-
-    if (!codigoLimpio) {
-
-        throw new Error(
-            "Ingresa el código del agente."
-        );
-    }
-
-
-    const referencia =
-        doc(
-            db,
-            "agentes",
-            codigoLimpio
-        );
-
-
-    const documento =
-        await getDoc(referencia);
-
-
-    // ==================================================
-    // AGENTE NO EXISTE
-    // ==================================================
-
-    if (!documento.exists()) {
-
-        throw new Error(
-            "Código de agente no válido."
-        );
-    }
-
-
-    const agente =
-        documento.data();
-
-
-    // ==================================================
-    // AGENTE DESACTIVADO
-    // ==================================================
-
-    if (agente.activo !== true) {
-
-        throw new Error(
-            "Este agente está desactivado."
-        );
-    }
-
-
-    // ==================================================
-    // DATOS DEL AGENTE
-    // AHORA INCLUIMOS CARGO Y TURNO
-    // ==================================================
-
-    agenteActual = {
-
-        id:
-            documento.id,
-
-        codigo:
-            agente.codigo ||
-            codigoLimpio,
-
-        nombre:
-            agente.nombre ||
-            "Agente",
-
-        cargo:
-            agente.cargo ||
-            "No registrado",
-
-        turno:
-            agente.turno ||
-            "No registrado"
-    };
-
-
-    return agenteActual;
-}
-
-
-// ======================================================
-// CONTINUAR
-// ======================================================
-
-async function continuar() {
-
-    ocultarMensaje();
-    ocultarError();
-
-
-    const codigo =
-        codigoAgente.value.trim();
-
-
-    if (!codigo) {
-
-        mostrarMensaje(
-            "warning",
-            "Ingresa el código del agente."
-        );
-
-        codigoAgente.focus();
-
-        return;
-    }
-
-
-    btnContinuar.disabled = true;
-
-    const textoOriginal =
-        btnContinuar.textContent;
-
-    btnContinuar.textContent =
-        "CONTINUANDO...";
-
-
-    try {
-
-        const resultados =
-            await Promise.all([
-
-                promesaPunto,
-
-                consultarAgente(
-                    codigo
-                )
-
-            ]);
-
-
-        const punto =
-            resultados[0];
-
-        const agente =
-            resultados[1];
-
-
-        // =================================================
-        // CREAR RONDA TEMPORAL
-        // =================================================
-
-        const rondaActual = {
-
-            punto: {
-
-                id:
-                    punto.id,
-
-                codigo:
-                    punto.codigo,
-
-                nombre:
-                    punto.nombre,
-
-                latitud:
-                    punto.latitud,
-
-                longitud:
-                    punto.longitud,
-
-                radioMetros:
-                    punto.radioMetros
-            },
-
-
-            agente: {
-
-                id:
-                    agente.id,
-
-                codigo:
-                    agente.codigo,
-
-                nombre:
-                    agente.nombre,
-
-                cargo:
-                    agente.cargo,
-
-                turno:
-                    agente.turno
-            },
-
-
-            inicio:
-                new Date().toISOString()
-        };
-
-
-        // =================================================
-        // GUARDAR DATOS PARA CAMARA.HTML
-        // =================================================
-
-        sessionStorage.setItem(
-
-            "rondaActual",
-
-            JSON.stringify(
-                rondaActual
-            )
-
-        );
-
-
-        // =================================================
-        // IR A CÁMARA
-        // =================================================
-
-        window.location.href =
-            "camara.html";
-
-
-    } catch (errorProceso) {
-
-        console.error(
-            "ERROR:",
-            errorProceso
-        );
-
-
-        mostrarMensaje(
-            "danger",
-            "❌ " +
-            (
-                errorProceso.message ||
-                "No se pudo continuar."
-            )
-        );
-
-
-        btnContinuar.disabled = false;
-
-        btnContinuar.textContent =
-            textoOriginal;
-
-        codigoAgente.focus();
-    }
-}
-
-
-// ======================================================
-// BOTÓN
-// ======================================================
-
-btnContinuar.addEventListener(
-    "click",
-    continuar
-);
-
-
-// ======================================================
-// ENTER
-// ======================================================
-
-codigoAgente.addEventListener(
-
-    "keydown",
-
-    event => {
-
-        if (event.key === "Enter") {
-
-            event.preventDefault();
-
-            continuar();
-        }
-    }
-);
-
-
-// ======================================================
-// INICIAR
-// ======================================================
-
-if (mostrarPuntoInicial()) {
-
-    iniciarCargaPunto();
-}
+btnContinuar.addEventListener("click",async()=>{
+  btnContinuar.disabled=true;
+  try{await iniciar();}catch(e){msg("danger","❌ "+(e.message||"No se pudo iniciar."));btnContinuar.disabled=false;}
+});
+codigoAgente.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();btnContinuar.click();}});
+
+codigoPunto.textContent=codigoURL||"No identificado";
+preparar().catch(e=>{infoPunto.className="alert alert-danger";err(e.message);formularioAgente.classList.add("d-none");});
