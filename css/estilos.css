@@ -681,3 +681,57 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+/* =====================================================
+   TARJETA RESUMIDA + DETALLE DE RONDA
+   ===================================================== */
+.resumen-ronda {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+    gap: 7px 18px;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.btn-ver-detalle {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    min-height: 42px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 9px 12px;
+    cursor: pointer;
+    font-weight: 800;
+    background: #fff;
+}
+
+.btn-ver-detalle:hover {
+    background: #f8fafc;
+}
+
+.detalle-ronda-expandible {
+    margin-top: 12px;
+    padding-top: 14px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.detalle-ronda-expandible[hidden] {
+    display: none !important;
+}
+
+.detalle-validacion-extra {
+    margin-top: 4px;
+    font-size: 13px;
+    color: #64748b;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+    .resumen-ronda {
+        grid-template-columns: 1fr;
+    }
+}

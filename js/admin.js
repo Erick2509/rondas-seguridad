@@ -1106,6 +1106,33 @@ function crearBloqueValidaciones(ronda) {
                 meta
             );
 
+            if (validacion.direccion) {
+                const direccion = document.createElement("div");
+                direccion.className = "detalle-validacion-extra";
+                direccion.textContent = "📌 " + validacion.direccion;
+                item.appendChild(direccion);
+            }
+
+            if (
+                validacion.latitud !== undefined &&
+                validacion.longitud !== undefined
+            ) {
+                const gps = document.createElement("div");
+                gps.className = "detalle-validacion-extra";
+                gps.textContent =
+                    "📍 GPS: " +
+                    validacion.latitud + ", " +
+                    validacion.longitud;
+                item.appendChild(gps);
+            }
+
+            if (validacion.qrValidado === true) {
+                const qrFisico = document.createElement("div");
+                qrFisico.className = "detalle-validacion-extra";
+                qrFisico.textContent = "📱 QR físico: VALIDADO";
+                item.appendChild(qrFisico);
+            }
+
             bloque.appendChild(
                 item
             );
@@ -1115,6 +1142,88 @@ function crearBloqueValidaciones(ronda) {
     return bloque;
 }
 
+
+
+// =====================================================
+// RESUMEN Y BOTÓN VER DETALLE
+// =====================================================
+
+function totalPuntosRonda(ronda) {
+    const resumen = obtenerResumenRecorrido(ronda);
+    if (resumen.ruta.length > 0) return resumen.ruta.length;
+
+    return Math.max(
+        Number(ronda.totalValidados || 0),
+        Array.isArray(ronda.validaciones) ? ronda.validaciones.length : 0
+    );
+}
+
+function crearResumenTarjetaRonda(ronda) {
+    const resumen = document.createElement("div");
+    resumen.className = "resumen-ronda";
+
+    const validados = Array.isArray(ronda.validaciones)
+        ? ronda.validaciones.length
+        : Number(ronda.totalValidados || 0);
+
+    const total = totalPuntosRonda(ronda);
+
+    agregarLinea(
+        resumen,
+        "👮 Agente: ",
+        ronda.agenteNombre || "Agente"
+    );
+
+    agregarLinea(
+        resumen,
+        "🕐 Turno: ",
+        ronda.agenteTurno || ronda.turno || "-"
+    );
+
+    agregarLinea(
+        resumen,
+        "📅 Fecha / inicio: ",
+        fechaRonda(ronda) + " · " + horaInicioRonda(ronda)
+    );
+
+    agregarLinea(
+        resumen,
+        "⏱️ Duración: ",
+        ronda.estado === "EN_CURSO"
+            ? "En curso"
+            : duracionTexto(ronda.duracionSegundos)
+    );
+
+    agregarLinea(
+        resumen,
+        "📍 Puntos: ",
+        total > 0 ? (validados + "/" + total) : String(validados)
+    );
+
+    return resumen;
+}
+
+function crearBotonVerDetalle(detalle) {
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.className = "btn-ver-detalle";
+    boton.textContent = "👁️ VER DETALLE";
+    boton.setAttribute("aria-expanded", "false");
+
+    detalle.hidden = true;
+    detalle.classList.add("detalle-ronda-expandible");
+
+    boton.addEventListener("click", function() {
+        const abrir = detalle.hidden;
+        detalle.hidden = !abrir;
+        boton.setAttribute("aria-expanded", abrir ? "true" : "false");
+        boton.textContent = abrir
+            ? "▲ OCULTAR DETALLE"
+            : "👁️ VER DETALLE";
+    });
+
+    return boton;
+}
 
 // =====================================================
 // MOSTRAR RONDAS
@@ -1256,13 +1365,30 @@ function mostrarRondas(
                     "-"
                 );
 
-                tarjeta.appendChild(
-                    superior
+                const resumenLegacy = document.createElement("div");
+                resumenLegacy.className = "resumen-ronda";
+                agregarLinea(
+                    resumenLegacy,
+                    "👮 Agente: ",
+                    ronda.agenteNombre || "Agente"
+                );
+                agregarLinea(
+                    resumenLegacy,
+                    "📅 Fecha / hora: ",
+                    (ronda.fecha || "-") + " · " + (ronda.hora || "-")
+                );
+                agregarLinea(
+                    resumenLegacy,
+                    "📍 Punto: ",
+                    ronda.puntoNombre || ronda.puntoCodigo || "-"
                 );
 
-                tarjeta.appendChild(
-                    detalle
-                );
+                const botonDetalle = crearBotonVerDetalle(detalle);
+
+                tarjeta.appendChild(superior);
+                tarjeta.appendChild(resumenLegacy);
+                tarjeta.appendChild(botonDetalle);
+                tarjeta.appendChild(detalle);
 
                 listaRondas.appendChild(
                     tarjeta
@@ -1473,13 +1599,13 @@ function mostrarRondas(
                 )
             );
 
-            tarjeta.appendChild(
-                superior
-            );
+            const resumenTarjeta = crearResumenTarjetaRonda(ronda);
+            const botonDetalle = crearBotonVerDetalle(detalle);
 
-            tarjeta.appendChild(
-                detalle
-            );
+            tarjeta.appendChild(superior);
+            tarjeta.appendChild(resumenTarjeta);
+            tarjeta.appendChild(botonDetalle);
+            tarjeta.appendChild(detalle);
 
             listaRondas.appendChild(
                 tarjeta
