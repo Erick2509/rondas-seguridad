@@ -600,6 +600,83 @@ function actualizarResumenRondas() {
 
 
 // =====================================================
+// PUNTOS FALTANTES DE UNA RONDA
+// =====================================================
+
+function obtenerResumenRecorrido(ronda) {
+    const ruta = puntos
+        .filter(function (punto) {
+            return punto.activo === true &&
+                punto.tipoRonda === ronda.tipoRonda &&
+                Number(punto.orden || 0) > 0;
+        })
+        .sort(function (a, b) {
+            return Number(a.orden || 0) - Number(b.orden || 0);
+        });
+
+    const validados = new Set(
+        (Array.isArray(ronda.validaciones) ? ronda.validaciones : [])
+            .map(function (v) {
+                return String(v.puntoCodigo || v.puntoId || "").toUpperCase();
+            })
+    );
+
+    const faltantes = ruta.filter(function (punto) {
+        const codigo = String(punto.codigo || punto.id || "").toUpperCase();
+        return !validados.has(codigo);
+    });
+
+    return {
+        ruta: ruta,
+        faltantes: faltantes,
+        completados: Math.max(0, ruta.length - faltantes.length)
+    };
+}
+
+function crearAvisoRondaIncompleta(ronda) {
+    const resumen = obtenerResumenRecorrido(ronda);
+    const aviso = document.createElement("div");
+    aviso.className = "alert alert-danger mt-3 mb-0";
+
+    const titulo = document.createElement("div");
+    titulo.innerHTML = "<strong>⚠️ Recorrido no completado</strong>";
+    aviso.appendChild(titulo);
+
+    const progreso = document.createElement("div");
+    progreso.style.marginTop = "6px";
+
+    if (resumen.ruta.length > 0) {
+        progreso.textContent =
+            "✅ Completado: " + resumen.completados +
+            " de " + resumen.ruta.length + " QR";
+    } else {
+        progreso.textContent =
+            "Último QR validado: " +
+            (ronda.ultimoPuntoCodigo || "Ninguno");
+    }
+    aviso.appendChild(progreso);
+
+    if (resumen.ruta.length > 0) {
+        const cantidad = document.createElement("div");
+        cantidad.textContent =
+            "❌ Faltaron: " + resumen.faltantes.length + " QR";
+        aviso.appendChild(cantidad);
+
+        resumen.faltantes.forEach(function (punto) {
+            const linea = document.createElement("div");
+            linea.style.marginTop = "4px";
+            linea.textContent =
+                "📍 " + (punto.codigo || punto.id) +
+                " — " + (punto.nombre || "Punto") +
+                " · Orden " + Number(punto.orden || 0);
+            aviso.appendChild(linea);
+        });
+    }
+
+    return aviso;
+}
+
+// =====================================================
 // MOSTRAR VALIDACIONES
 // =====================================================
 
@@ -1095,13 +1172,9 @@ function mostrarRondas(
             );
 
             if (ronda.estado === "INCOMPLETA") {
-                const aviso = document.createElement("div");
-                aviso.className = "alert alert-danger mt-3 mb-0";
-                aviso.innerHTML =
-                    "<strong>⚠️ Recorrido no completado</strong><br>" +
-                    "Último QR validado: " +
-                    (ronda.ultimoPuntoCodigo || "Ninguno");
-                detalle.appendChild(aviso);
+                detalle.appendChild(
+                    crearAvisoRondaIncompleta(ronda)
+                );
             }
 
             detalle.appendChild(
@@ -3113,8 +3186,12 @@ agenteNombre.addEventListener(
 // INICIAR PANEL
 // =====================================================
 
-cargarRondas();
-
-cargarPuntos();
+cargarPuntos()
+    .then(function () {
+        return cargarRondas();
+    })
+    .catch(function () {
+        return cargarRondas();
+    });
 
 cargarAgentes();
