@@ -3487,6 +3487,11 @@ document.addEventListener("click", function(e) {
     if (rolActual !== "SUPERVISORA") return;
     const el=e.target.closest("button,a");
     if(!el) return;
+
+    // Las notificaciones son una función permitida también para SUPERVISORA.
+    // No bloquear el botón de registro/actualización del dispositivo push.
+    if (el.id === "btnPush" || el.closest("#panelPush")) return;
+
     const t=(el.textContent||"").toUpperCase();
     const id=(el.id||"").toLowerCase();
     if (
