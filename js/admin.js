@@ -21,8 +21,8 @@ async function activarNotificacionesPush() {
     }
 
     const user = auth.currentUser;
-    if (!user || !rolActual || !["ADMIN", "SUPERVISORA"].includes(rolActual)) {
-      throw new Error("Debes iniciar sesión como ADMIN o SUPERVISORA.");
+    if (!user || !rolActual || !["ADMIN", "CLIENTE"].includes(rolActual)) {
+      throw new Error("Debes iniciar sesión como ADMIN o CLIENTE.");
     }
 
     const permiso = await Notification.requestPermission();
@@ -163,8 +163,8 @@ let rolActual = null;
 let usuarioActual = null;
 let accesoResuelto = false;
 
-function ocultarFuncionesEdicionParaSupervisora() {
-    // La supervisora solo usa el historial de rondas.
+function ocultarFuncionesEdicionParaCliente() {
+    // La cliente solo usa el historial de rondas.
     const selectores = [
         '[data-seccion="inicio"]',
         '[data-seccion="puntos"]',
@@ -226,7 +226,7 @@ async function resolverAcceso(user) {
     }
 
     const rol = snap.data().rol;
-    if (rol !== "ADMIN" && rol !== "SUPERVISORA") {
+    if (rol !== "ADMIN" && rol !== "CLIENTE") {
         await signOut(auth);
         location.replace("login.html");
         return;
@@ -239,11 +239,11 @@ async function resolverAcceso(user) {
     const rolSesion=document.getElementById("rolSesion");
     const correoSesion=document.getElementById("correoSesion");
     if(rolSesion) rolSesion.textContent =
-        rol === "ADMIN" ? "👨‍💻 ADMINISTRADOR" : "👩‍💼 SUPERVISORA";
+        rol === "ADMIN" ? "👨‍💻 ADMINISTRADOR" : "👩‍💼 CLIENTE";
     if(correoSesion) correoSesion.textContent = user.email || "";
 
-    if (rol === "SUPERVISORA") {
-        ocultarFuncionesEdicionParaSupervisora();
+    if (rol === "CLIENTE") {
+        ocultarFuncionesEdicionParaCliente();
     }
 
     document.body.style.visibility = "visible";
@@ -3482,13 +3482,13 @@ cargarPuntos()
 
 cargarAgentes();
 
-// Segunda barrera visual: bloquea acciones de edición en modo SUPERVISORA.
+// Segunda barrera visual: bloquea acciones de edición en modo CLIENTE.
 document.addEventListener("click", function(e) {
-    if (rolActual !== "SUPERVISORA") return;
+    if (rolActual !== "CLIENTE") return;
     const el=e.target.closest("button,a");
     if(!el) return;
 
-    // Las notificaciones son una función permitida también para SUPERVISORA.
+    // Las notificaciones son una función permitida también para CLIENTE.
     // No bloquear el botón de registro/actualización del dispositivo push.
     if (el.id === "btnPush" || el.closest("#panelPush")) return;
 

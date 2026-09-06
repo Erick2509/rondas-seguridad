@@ -72,7 +72,7 @@ module.exports = async function handler(req, res) {
     const ds = await db.collection("dispositivosPush").where("activo","==",true).get();
 
     // Un mismo iPhone/Android puede haber iniciado sesión con ADMIN y luego
-    // SUPERVISORA. Enviar una sola vez por token físico evita duplicados.
+    // CLIENTE. Enviar una sola vez por token físico evita duplicados.
     const porToken = new Map();
     for (const d of ds.docs) {
       const token = d.data().token;

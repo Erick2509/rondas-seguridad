@@ -31,7 +31,7 @@ function error(t){
 async function usuarioAutorizado(user){
   const s=await getDoc(doc(db,"usuarios",user.uid));
   return s.exists() && s.data().activo===true &&
-    (s.data().rol==="ADMIN" || s.data().rol==="SUPERVISORA");
+    (s.data().rol==="ADMIN" || s.data().rol==="CLIENTE");
 }
 
 onAuthStateChanged(auth,async user=>{

@@ -37,7 +37,7 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(clients.openWindow(destino));
 });
 
-const CACHE_NAME = "rondas-seguridad-v9-push-sin-duplicados";
+const CACHE_NAME = "rondas-seguridad-v10-rol-cliente";
 const APP_SHELL = [
   "/",
   "/index.html",
