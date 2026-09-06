@@ -1,4 +1,4 @@
-const CACHE_NAME = "rondas-seguridad-v1";
+const CACHE_NAME = "rondas-seguridad-v2-dos-pwa";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -6,10 +6,16 @@ const APP_SHELL = [
   "/camara.html",
   "/login.html",
   "/admin.html",
+  "/instalar-admin.html",
   "/css/estilos.css",
   "/manifest.json",
+  "/manifest-admin.json",
   "/icons/icon-192.png",
-  "/icons/icon-512.png"
+  "/icons/icon-512.png",
+  "/icons/rondas-192.png",
+  "/icons/rondas-512.png",
+  "/icons/admin-192.png",
+  "/icons/admin-512.png"
 ];
 
 self.addEventListener("install", event => {

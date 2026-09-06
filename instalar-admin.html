@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Instalar Administración Rondas</title>
+<link rel="manifest" href="/manifest-admin.json">
+<meta name="theme-color" content="#172b4d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Administración">
+<link rel="apple-touch-icon" href="/icons/admin-192.png">
+<style>
+body{margin:0;background:#f5f6f8;font-family:Arial,sans-serif;color:#172b4d}
+main{max-width:520px;margin:60px auto;padding:24px}
+.card{background:white;border-radius:18px;padding:28px;box-shadow:0 8px 28px rgba(0,0,0,.09);text-align:center}
+.icon{font-size:52px}.btn{display:block;text-decoration:none;background:#172b4d;color:white;padding:14px;border-radius:12px;font-weight:700;margin-top:18px}
+small{color:#64748b;line-height:1.5;display:block;margin-top:16px}
+</style>
+</head>
+<body><main><div class="card"><div class="icon">⚙️</div>
+<h1>Administración Rondas</h1>
+<p>Instala el panel de Administración/Supervisión como una aplicación independiente.</p>
+<a class="btn" href="/login.html?app=admin">ABRIR ADMINISTRACIÓN</a>
+<small>Android: abre esta página en Chrome y usa “Instalar aplicación”.<br>iPhone: Safari → Compartir → Añadir a pantalla de inicio.</small>
+</div></main>
+<script>
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js"))}
+</script></body></html>

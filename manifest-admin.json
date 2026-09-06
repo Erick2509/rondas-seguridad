@@ -1,9 +1,9 @@
 {
-  "id": "/?app=rondas",
-  "name": "Rondas de Seguridad",
-  "short_name": "Rondas",
-  "description": "Aplicación para realizar rondas de seguridad",
-  "start_url": "/index.html?app=rondas",
+  "id": "/admin-app",
+  "name": "Administración Rondas",
+  "short_name": "Administración",
+  "description": "Panel de administración y supervisión de rondas",
+  "start_url": "/login.html?app=admin",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f5f6f8",
@@ -11,13 +11,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icons/rondas-192.png",
+      "src": "/icons/admin-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/rondas-512.png",
+      "src": "/icons/admin-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
