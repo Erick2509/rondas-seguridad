@@ -10,8 +10,8 @@ const btnCompartir=$("btnCompartir"),btnSiguiente=$("btnSiguiente"),error=$("err
 let datosRonda=null,ubicacionActual=null,direccionActual="Ubicación no disponible",imagenFinal=null,registrado=false,gpsWatchId=null,fechaFoto=null;
 
 function mostrarError(t){error.textContent=t;error.classList.remove("d-none");}
-function activa(){try{return JSON.parse(sessionStorage.getItem("rondaActiva")||"null");}catch(e){return null;}}
-function guardarActiva(r){sessionStorage.setItem("rondaActiva",JSON.stringify(r));}
+function activa(){try{return JSON.parse(localStorage.getItem("rondaActiva")||sessionStorage.getItem("rondaActiva")||"null");}catch(e){return null;}}
+function guardarActiva(r){localStorage.setItem("rondaActiva",JSON.stringify(r));sessionStorage.setItem("rondaActiva",JSON.stringify(r));}
 
 function cargarDatos(){
   try{datosRonda=JSON.parse(sessionStorage.getItem("rondaActual")||"null");}catch(e){}
@@ -161,6 +161,7 @@ btnSiguiente.addEventListener("click",()=>{
   const esFinal=datosRonda.punto.funcionQR==="FINAL";
   sessionStorage.removeItem("rondaActual");
   if(esFinal){
+    localStorage.removeItem("rondaActiva");
     sessionStorage.removeItem("rondaActiva");
     document.body.innerHTML=`<div class="container py-5"><div class="card shadow-sm mx-auto" style="max-width:600px"><div class="card-body text-center p-5"><div class="fs-1">✅</div><h2>Ronda completada</h2><p class="lead">La Ronda ${datosRonda.tipoRonda} finalizó correctamente.</p><a href="index.html" class="btn btn-primary btn-lg w-100">VOLVER AL INICIO</a></div></div></div>`;
   }else location.href="index.html";

@@ -23,6 +23,9 @@
       <p class="text-muted">Sistema de control de rondas</p>
       <hr>
       <div id="infoRondaActiva" class="alert alert-success d-none text-start"></div>
+      <div id="accionesRondaActiva" class="d-none mb-3">
+        <button id="btnCancelarRonda" type="button" class="btn btn-outline-danger w-100">❌ CANCELAR RONDA</button>
+      </div>
       <div class="alert alert-info">📱 Escanea el siguiente código QR del recorrido.</div>
       <button id="btnEscanear" type="button" class="btn btn-primary btn-lg w-100">📷 ESCANEAR QR</button>
       <button id="btnDetener" type="button" class="btn btn-outline-danger w-100 mt-2 oculto">DETENER CÁMARA</button>
@@ -33,26 +36,51 @@
   </div>
 </div>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+const firebaseConfig={apiKey:"AIzaSyDf8abFDocep8kEHa45IJ02r_nBY6X8ops",authDomain:"rondas-seguridad-63ba4.firebaseapp.com",projectId:"rondas-seguridad-63ba4",storageBucket:"rondas-seguridad-63ba4.firebasestorage.app",messagingSenderId:"924206639387",appId:"1:924206639387:web:2e730ce51c54cccb624bbe"};
+const db=getFirestore(initializeApp(firebaseConfig));
 const btnEscanear=document.getElementById("btnEscanear");
 const btnDetener=document.getElementById("btnDetener");
 const mensaje=document.getElementById("mensaje");
 const infoRondaActiva=document.getElementById("infoRondaActiva");
+const accionesRondaActiva=document.getElementById("accionesRondaActiva");
+const btnCancelarRonda=document.getElementById("btnCancelarRonda");
 let lector=null,escaneando=false,procesandoQR=false;
 
-function mostrarRondaActiva(){
+async function mostrarRondaActiva(){
   try{
-    const r=JSON.parse(sessionStorage.getItem("rondaActiva")||"null");
-    if(!r||!r.rondaId)return;
-    infoRondaActiva.classList.remove("d-none");
-    infoRondaActiva.innerHTML=`<strong>🔄 RONDA EN CURSO</strong><br>
-      👮 ${r.agente?.nombre||""}<br>
-      ${r.tipoRonda?`🧭 Ronda ${r.tipoRonda}<br>`:""}
-      📍 Último QR: ${r.ultimoPuntoCodigo||"Inicio pendiente"}<br>
-      🔢 Validados: ${r.totalValidados||0}`;
-  }catch(e){}
+    let r=JSON.parse(localStorage.getItem("rondaActiva")||sessionStorage.getItem("rondaActiva")||"null");
+    if(!r?.rondaId)return;
+    const snap=await getDoc(doc(db,"rondas",r.rondaId));
+    if(!snap.exists()||snap.data().estado!=="EN_CURSO"){
+      localStorage.removeItem("rondaActiva"); sessionStorage.removeItem("rondaActiva"); sessionStorage.removeItem("rondaActual"); return;
+    }
+    const d=snap.data();
+    r.ultimoOrden=Number(d.ultimoOrden||r.ultimoOrden||0);
+    r.ultimoPuntoCodigo=d.ultimoPuntoCodigo||r.ultimoPuntoCodigo||null;
+    r.totalValidados=Number(d.totalValidados||0);
+    localStorage.setItem("rondaActiva",JSON.stringify(r)); sessionStorage.setItem("rondaActiva",JSON.stringify(r));
+    infoRondaActiva.classList.remove("d-none"); accionesRondaActiva.classList.remove("d-none");
+    infoRondaActiva.innerHTML=`<strong>🔄 RONDA EN CURSO</strong><br>👮 ${r.agente?.nombre||d.agenteNombre||""}<br>🧭 Ronda ${r.tipoRonda||d.tipoRonda||""}<br>📍 Último QR: ${r.ultimoPuntoCodigo||"Inicio pendiente"}<br>🔢 Validados: ${r.totalValidados||0}`;
+  }catch(e){console.error(e);}
 }
 mostrarRondaActiva();
+
+btnCancelarRonda.addEventListener("click",async()=>{
+  let r; try{r=JSON.parse(localStorage.getItem("rondaActiva")||sessionStorage.getItem("rondaActiva")||"null");}catch(e){}
+  if(!r?.rondaId)return;
+  if(!confirm("¿Seguro que deseas cancelar esta ronda? Quedará registrada como INCOMPLETA."))return;
+  const motivo=(prompt("Motivo de cancelación (opcional):","")||"").trim();
+  btnCancelarRonda.disabled=true;
+  try{
+    const fin=new Date(),inicio=new Date(r.inicio);
+    await updateDoc(doc(db,"rondas",r.rondaId),{estado:"INCOMPLETA",cancelacionTimestamp:serverTimestamp(),horaCancelacionLocal:fin.toISOString(),duracionSegundos:Math.max(0,Math.round((fin-inicio)/1000)),motivoCancelacion:motivo});
+    localStorage.removeItem("rondaActiva"); sessionStorage.removeItem("rondaActiva"); sessionStorage.removeItem("rondaActual");
+    alert("Ronda cancelada. Quedó registrada como INCOMPLETA."); location.reload();
+  }catch(e){alert("No se pudo cancelar la ronda: "+(e.message||e));btnCancelarRonda.disabled=false;}
+});
 
 function mostrarMensaje(tipo,texto){
   mensaje.className="alert alert-"+tipo+" estado";

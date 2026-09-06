@@ -16,7 +16,7 @@ const accionesError =
 const btnEscanearNuevamente =
     document.getElementById("btnEscanearNuevamente");
 
-function activa() { try { return JSON.parse(sessionStorage.getItem("rondaActiva") || "null"); } catch (e) { return null; } }
+function activa() { try { return JSON.parse(localStorage.getItem("rondaActiva") || sessionStorage.getItem("rondaActiva") || "null"); } catch (e) { return null; } }
 function msg(tipo, texto) { mensaje.className = "alert alert-" + tipo + " mt-3"; mensaje.textContent = texto; mensaje.classList.remove("d-none"); }
 function err(texto) {
 
@@ -78,7 +78,7 @@ function limpiar() {
         "d-none"
     );
 }
-function guardarActiva(r) { sessionStorage.setItem("rondaActiva", JSON.stringify(r)); }
+function guardarActiva(r) { localStorage.setItem("rondaActiva", JSON.stringify(r)); sessionStorage.setItem("rondaActiva", JSON.stringify(r)); }
 
 async function cargarPunto() {
     if (!/^P\d+$/.test(codigoURL)) throw new Error("Código de punto inválido.");
@@ -112,7 +112,15 @@ async function puntoEsperado(tipo, orden) {
 
 async function preparar() {
     await cargarPunto();
-    const r = activa();
+    let r = activa();
+    if (r?.rondaId) {
+        const rs = await getDoc(doc(db, "rondas", r.rondaId));
+        if (!rs.exists() || rs.data().estado !== "EN_CURSO") {
+            localStorage.removeItem("rondaActiva"); sessionStorage.removeItem("rondaActiva"); sessionStorage.removeItem("rondaActual"); r = null;
+        } else {
+            const rd=rs.data(); r.ultimoOrden=Number(rd.ultimoOrden||r.ultimoOrden||0); r.ultimoPuntoCodigo=rd.ultimoPuntoCodigo||r.ultimoPuntoCodigo||null; r.totalValidados=Number(rd.totalValidados||0); guardarActiva(r);
+        }
+    }
     if (!r) {
         if (punto.funcionQR !== "INICIO") throw new Error("No hay una ronda activa. Debes escanear primero el QR de INICIO.");
         formularioAgente.classList.remove("d-none");
