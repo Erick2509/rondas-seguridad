@@ -1485,7 +1485,7 @@ function mostrarRondas(
         }
     );
 
-    const totalPaginas = Math.max(
+    const totalPaginasPaginacion = Math.max(
         1,
         Math.ceil(rondasVistaActual.length / RONDAS_POR_PAGINA)
     );
@@ -1509,15 +1509,15 @@ function mostrarRondas(
     const infoPagina = document.createElement("div");
     infoPagina.className = "info-paginacion";
     infoPagina.textContent =
-        `Página ${paginaRondas} de ${totalPaginas} · ${rondasVistaActual.length} rondas`;
+        `Página ${paginaRondas} de ${totalPaginasPaginacion} · ${rondasVistaActual.length} rondas`;
 
     const siguiente = document.createElement("button");
     siguiente.type = "button";
     siguiente.className = "btn-actualizar";
     siguiente.textContent = "SIGUIENTE →";
-    siguiente.disabled = paginaRondas >= totalPaginas;
+    siguiente.disabled = paginaRondas >= totalPaginasPaginacion;
     siguiente.addEventListener("click", function() {
-        if (paginaRondas < totalPaginas) {
+        if (paginaRondas < totalPaginasPaginacion) {
             paginaRondas++;
             mostrarRondas(rondasVistaActual);
             seccionRondas.scrollIntoView({behavior:"smooth", block:"start"});
