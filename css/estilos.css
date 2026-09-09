@@ -735,3 +735,26 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+/* =====================================================
+   QR PERSONALIZADO PREVENCION
+   ===================================================== */
+.qr-margen {
+    position: relative;
+    display: inline-block;
+}
+
+.qr-sello-prevencion {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: #ffffff;
+    color: #000000;
+    padding: 5px 7px;
+    font: 700 10px/1 Arial, sans-serif;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 5;
+}

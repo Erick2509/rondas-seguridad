@@ -2031,12 +2031,19 @@ function crearQRVisual(
             colorLight:
                 "#ffffff",
 
+            // Nivel H: mayor tolerancia para colocar la etiqueta central.
             correctLevel:
                 window.QRCode
                     .CorrectLevel
-                    .M
+                    .H
         }
     );
+
+    // Etiqueta visual centrada. Es pequeña para no cubrir demasiado QR.
+    const selloPrevencion = document.createElement("div");
+    selloPrevencion.className = "qr-sello-prevencion";
+    selloPrevencion.textContent = "PREVENCION";
+    margenQR.appendChild(selloPrevencion);
 
 
     qrNombreVisual.textContent =
@@ -2238,6 +2245,31 @@ function canvasQRConMargen() {
         margen
     );
 
+    // Sello central PREVENCION.
+    // Se mantiene deliberadamente pequeño y se usa QR nivel H.
+    const centroX = canvasFinal.width / 2;
+    const centroY = canvasFinal.height / 2;
+    const anchoSello = 70;
+    const altoSello = 22;
+
+    contexto.fillStyle = "#ffffff";
+    contexto.fillRect(
+        centroX - anchoSello / 2,
+        centroY - altoSello / 2,
+        anchoSello,
+        altoSello
+    );
+
+    contexto.fillStyle = "#000000";
+    contexto.font = "bold 10px Arial, sans-serif";
+    contexto.textAlign = "center";
+    contexto.textBaseline = "middle";
+    contexto.fillText(
+        "PREVENCION",
+        centroX,
+        centroY
+    );
+
 
     return canvasFinal;
 }
@@ -2319,6 +2351,135 @@ async function descargarQR() {
 }
 
 btnDescargarQR.addEventListener("click", descargarQR);
+
+
+
+// =====================================================
+// ACTUALIZAR / REGENERAR TODOS LOS QR CON NUEVO DISEÑO
+// =====================================================
+
+async function actualizarTodosLosQR() {
+    if (rolActual !== "ADMIN") return;
+
+    const boton = document.getElementById("btnActualizarTodosQR");
+    if (!boton) return;
+
+    const textoOriginal = boton.textContent;
+    boton.disabled = true;
+    boton.textContent = "⏳ PREPARANDO TODOS LOS QR...";
+
+    try {
+        const resultado = await getDocs(collection(db, "puntos"));
+        const puntos = resultado.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(p => p.activo !== false)
+            .sort((a, b) => {
+                const tipo = String(a.tipoRonda || "").localeCompare(String(b.tipoRonda || ""));
+                if (tipo !== 0) return tipo;
+                return Number(a.orden || 0) - Number(b.orden || 0);
+            });
+
+        if (puntos.length === 0) {
+            mostrarMensaje(qrError, "No hay puntos QR para actualizar.");
+            return;
+        }
+
+        const ventana = window.open("", "_blank");
+        if (!ventana) {
+            mostrarMensaje(
+                qrError,
+                "El navegador bloqueó la ventana. Permite ventanas emergentes y vuelve a intentarlo."
+            );
+            return;
+        }
+
+        ventana.document.write(`
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>QR PREVENCION - Todos los puntos</title>
+<style>
+body{font-family:Arial,sans-serif;margin:20px;background:#fff;color:#111}
+h1{text-align:center;margin-bottom:4px}
+.sub{text-align:center;margin-bottom:24px;color:#555}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(280px,1fr));gap:18px}
+.tarjeta{border:2px solid #111;border-radius:12px;padding:18px;text-align:center;break-inside:avoid}
+.tipo{font-size:12px;font-weight:bold;margin-bottom:5px}
+.nombre{font-size:18px;font-weight:bold;margin:5px 0}
+.codigo{font-size:14px;margin-bottom:10px}
+.qrwrap{position:relative;width:260px;height:260px;margin:0 auto}
+.qrwrap img{width:260px;height:260px;display:block}
+.sello{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;color:#000;
+font:bold 10px Arial;padding:5px 7px;line-height:1;white-space:nowrap}
+.url{font-size:9px;word-break:break-all;margin-top:8px;color:#555}
+.acciones{text-align:center;margin:20px 0}
+button{padding:12px 18px;font-weight:bold;cursor:pointer}
+@media print{.acciones{display:none}.grid{gap:10px}.tarjeta{page-break-inside:avoid}}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<h1>🛡️ RONDA DE SEGURIDAD</h1>
+<div class="sub">QR actualizados con diseño PREVENCION</div>
+<div class="acciones"><button onclick="window.print()">🖨 IMPRIMIR / GUARDAR PDF</button></div>
+<div id="grid" class="grid"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+<script>
+const puntos = ${JSON.stringify(puntos)};
+const origen = ${JSON.stringify(window.location.origin)};
+const grid = document.getElementById("grid");
+
+function crear(p) {
+  const tarjeta = document.createElement("div");
+  tarjeta.className = "tarjeta";
+
+  const url = origen + "/ronda.html?punto=" + encodeURIComponent(p.codigo || p.id);
+  tarjeta.innerHTML =
+    '<div class="tipo">' + (p.tipoRonda || '') + ' · ' + (p.funcionQR || '') + '</div>' +
+    '<div class="nombre"></div>' +
+    '<div class="codigo"></div>' +
+    '<div class="qrwrap"><div class="qr"></div><div class="sello">PREVENCION</div></div>' +
+    '<div class="url"></div>';
+
+  tarjeta.querySelector(".nombre").textContent = p.nombre || p.codigo || p.id;
+  tarjeta.querySelector(".codigo").textContent = "Código: " + (p.codigo || p.id);
+  tarjeta.querySelector(".url").textContent = url;
+  grid.appendChild(tarjeta);
+
+  new QRCode(tarjeta.querySelector(".qr"), {
+    text: url,
+    width: 260,
+    height: 260,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+puntos.forEach(crear);
+<\/script>
+</body>
+</html>`);
+        ventana.document.close();
+
+        mostrarMensaje(
+            qrError,
+            `✅ ${puntos.length} QR preparados con el nuevo diseño PREVENCION. Los códigos originales no cambiaron.`,
+            true
+        );
+    } catch (e) {
+        console.error("Error actualizando todos los QR:", e);
+        mostrarMensaje(qrError, "No se pudieron preparar todos los QR: " + e.message);
+    } finally {
+        boton.disabled = false;
+        boton.textContent = textoOriginal;
+    }
+}
+
+const btnActualizarTodosQR = document.getElementById("btnActualizarTodosQR");
+if (btnActualizarTodosQR) {
+    btnActualizarTodosQR.addEventListener("click", actualizarTodosLosQR);
+}
 
 
 // =====================================================
