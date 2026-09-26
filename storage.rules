@@ -1,8 +1,0 @@
-rules_version = '2';
-service firebase.storage {
- match /b/{bucket}/o {
-  // Esta versión guarda JPEG comprimidos en documentos privados de Firestore.
-  // No necesita Cloud Storage ni URLs públicas de descarga.
-  match /{allPaths=**} { allow read, write: if false; }
- }
-}
