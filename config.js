@@ -1,2 +1,0 @@
-export const firebaseConfig={apiKey:'AIzaSyDf8abFDocep8kEHa45IJ02r_nBY6X8ops',authDomain:'rondas-seguridad-63ba4.firebaseapp.com',projectId:'rondas-seguridad-63ba4',storageBucket:'rondas-seguridad-63ba4.firebasestorage.app',messagingSenderId:'924206639387',appId:'1:924206639387:web:2e730ce51c54cccb624bbe'};
-export const vapidKey='BDHsF6Yh-g_REJp45fr5QCLjVfCitfpiy6mt4Kdca9_WtAOdeFh8mJFk-SUVSFcrRIFyAH_1xDrLpbQWPe5wAUA';
