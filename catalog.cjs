@@ -18,7 +18,7 @@ function catalog({db,auth,Timestamp}){
   });
  }
  async function checkRoutes(a){admin(a);const {puntos}=await points(a);return {rutas:['EXTERNA','INTERNA'].map(tipo=>{try{return {tipo,ok:true,total:route(puntos.filter(p=>p.tipoRonda===tipo)).length};}catch(e){return {tipo,ok:false,error:e.message};}})};}
- async function agents(a){panel(a);const s=await db.collection('agentes').limit(501).get();fail(s.size<=500,'Catálogo de agentes demasiado grande.');return {agentes:s.docs.map(d=>a.rol==='ADMIN'?{id:d.id,...d.data()}:{id:d.id,nombre:d.data().nombre,turno:d.data().turno})};}
+ async function agents(a){panel(a);const s=await db.collection('agentes').limit(501).get();fail(s.size<=500,'Catálogo de agentes demasiado grande.');return {agentes:s.docs.map(d=>a.rol==='ADMIN'?{id:d.id,...d.data()}:{id:d.id,nombre:d.data().nombre,cargo:d.data().cargo,turno:d.data().turno,activo:d.data().activo===true})};}
  async function saveAgent(a,b){
   admin(a);const id=code(b.codigo),nombre=str(b.nombre,'Nombre'),cargo=str(b.cargo,'Cargo');fail(['Día','Noche'].includes(b.turno),'Selecciona Día o Noche.');
   let uid;

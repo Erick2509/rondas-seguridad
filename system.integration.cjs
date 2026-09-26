@@ -21,6 +21,11 @@ async function seed(){
 test('Flujos reales con Firestore y Authentication emulados',async t=>{
  await seed();let id;
  await t.test('anónimo bloqueado; CLIENTE no puede iniciar ni editar catálogos',async()=>{assert.equal((await api(null,'rondas')).statusCode,401);assert.equal((await api('client','iniciar',{punto:'P01',requestId:'request-0000000001'})).statusCode,403);assert.equal((await api('client','guardar-agente',{codigo:'003'})).statusCode,403);});
+ await t.test('CLIENTE consulta agentes sin identidad de acceso; AGENTE solo obtiene su perfil',async()=>{
+  const r=await ok('client','agentes');assert.equal(r.agentes.length,2);assert.deepEqual(r.agentes[0],{id:'001',nombre:'Agente 001',cargo:'Vigilante',turno:'Día',activo:true});
+  assert.equal((await api('client','credencial-agente',{codigo:'001'})).statusCode,403);
+  const me=await ok('agente_001','me');assert.deepEqual(me.agente,{codigo:'001',nombre:'Agente 001',cargo:'Vigilante',turno:'Día'});assert.equal((await api('agente_001','agentes')).statusCode,403);
+ });
  await t.test('inicio concurrente solo crea una ronda activa',async()=>{const r=await Promise.all([ok('agente_001','iniciar',{punto:'P01',requestId:'request-0000000001'}),ok('agente_001','iniciar',{punto:'P01',requestId:'request-0000000002'})]);assert.equal(r[0].ronda.id,r[1].ronda.id);id=r[0].ronda.id;assert.equal((await db.collection('rondas').get()).size,1);assert.equal((await db.collection('eventosPush').get()).size,1);});
  await t.test('agente ajeno no puede leer, cancelar ni registrar',async()=>{for(const action of ['ronda','cancelar','registrar'])assert.equal((await api('agente_002',action,{rondaId:id,punto:'P01',foto:photo,motivo:'Prueba'})).statusCode,403);});
  await t.test('no permite FINAL adelantado ni una foto inválida',async()=>{assert.equal((await api('agente_001','registrar',{rondaId:id,punto:'P03',foto:photo})).statusCode,409);assert.equal((await api('agente_001','registrar',{rondaId:id,punto:'P01',foto:'mal'})).statusCode,400);assert.equal((await db.collection(`rondas/${id}/validaciones`).get()).size,0);});

@@ -22,3 +22,10 @@
 - Las notificaciones pendientes requieren el scheduler incluido o el panel abierto para reintentarse después de un fallo. No se afirma lectura ni entrega exactamente una vez.
 
 No hay servicios externos activados, compras ni despliegues realizados por esta entrega. El código del paquete, las reglas y la migración forman una actualización conjunta.
+
+## Actualización: agentes del cliente y novedades opcionales
+
+- CLIENTE dispone de la pestaña Agentes en modo consulta; el servidor entrega nombre, código, cargo, turno y estado, sin UID de acceso ni gestión de contraseñas.
+- Notificar novedades está disponible para AGENTE desde inicio, QR y cámara, como ventana independiente sin operaciones de escritura sobre la ronda.
+- Foto JPEG con marca de agua integrada, descripción convertida realmente a mayúsculas, vista previa, compartir por WhatsApp y alternativa de descarga/adjunto manual.
+- Cancelar compartir o cerrar la ventana conserva el avance y la evidencia pendiente del punto. El borrador de novedad permanece solo durante la vida de esa página.

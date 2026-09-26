@@ -1,3 +1,4 @@
+import {mountNovelty} from './novelty.js';
 import {$,account,call,notice,showError,busy,line,clear,install,fecha,button} from './common.js';
 import {saveDraft,deleteDraft,drafts} from './drafts.js';
 const {auth,ready}=account(true);install();const params=new URLSearchParams(location.search),id=params.get('ronda'),punto=params.get('punto');let ronda,point,pending=null,blob=null,gps=null,registered=false;
@@ -34,3 +35,5 @@ ready().then(async u=>{if(!u){location.replace('/index.html');return;}if(!id||!p
  if(ronda.estado!=='EN_CURSO'||ronda.ruta[ronda.totalValidados]?.codigo!==punto){const d=await call(auth,'detalle',{rondaId:id});const v=d.validaciones.find(v=>v.puntoCodigo===punto);if(v?.evidenciaId){const ev=await call(auth,'evidencia',{evidenciaId:v.evidenciaId});preview(ev.base64);registered=true;$('photo').disabled=true;$('save').hidden=true;$('next').hidden=false;$('share').hidden=false;if(pending)await deleteDraft(pending.key);notice('Este punto ya está registrado. Se muestra la fotografía guardada.');return;}throw Error('Esta ronda está cerrada o espera otro QR.');}
  $('photo').disabled=false;
 }).catch(showError);
+
+mountNovelty(auth);

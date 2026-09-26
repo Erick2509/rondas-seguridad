@@ -1,3 +1,4 @@
+import {mountNovelty} from './novelty.js';
 import {signInWithEmailAndPassword,updatePassword} from 'firebase/auth';
 import {$,account,call,notice,showError,busy,install,signOut,line,clear,button,fecha,el} from './common.js';
 import {drafts,deleteDraft} from './drafts.js';
@@ -13,3 +14,5 @@ $('changePassword').onclick=async()=>{const p=prompt('Nueva contraseña (mínimo
 $('refresh').onclick=()=>refresh().catch(showError);
 async function boot(){if(!auth.currentUser)return;if(!navigator.onLine){$('loginBox').hidden=true;$('work').hidden=false;$('scan').disabled=true;await showDrafts();notice('Sin conexión. Tus fotos pendientes están guardadas aquí; podrás enviarlas al reconectar.');return;}$('scan').disabled=false;const {usuario}=await call(auth,'me');if(usuario.rol!=='AGENTE'){await signOut(auth);throw Error('Ingresa con una cuenta de agente.');}$('loginBox').hidden=true;$('work').hidden=false;$('identity').textContent='Agente '+usuario.agenteId;const returnPoint=sessionStorage.getItem('returnPoint');if(returnPoint&&/^P\d{1,12}$/.test(returnPoint)){sessionStorage.removeItem('returnPoint');location.replace('/ronda.html?punto='+encodeURIComponent(returnPoint));return;}await refresh();}
 ready().then(u=>u&&boot()).catch(showError);addEventListener('online',()=>auth.currentUser&&boot().catch(showError));addEventListener('pagehide',stop);
+
+mountNovelty(auth,{beforeOpen:stop});

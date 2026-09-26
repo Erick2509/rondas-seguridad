@@ -7,7 +7,7 @@ Proyecto completo en HTML, CSS y JavaScript, con Firebase Authentication/Firesto
 ## Cambios principales
 
 - Código y contraseña por agente, cuenta autenticada y propiedad de la ronda verificadas en cada operación del servidor.
-- CLIENTE consulta el historial y recibe notificaciones. Las escrituras del negocio se realizan exclusivamente en el servidor y exigen su rol correspondiente.
+- CLIENTE consulta el historial, ve la lista de agentes (código, nombre, cargo, turno y estado) y recibe notificaciones. No puede editar agentes ni gestionar sus accesos. Las escrituras del negocio se realizan exclusivamente en el servidor y exigen su rol correspondiente.
 - Ruta validada y congelada al inicio: un INICIO, órdenes consecutivos y un FINAL al terminar. Los QR físicos existentes siguen sirviendo si se conserva el mismo dominio y los códigos.
 - Una sola ronda activa por agente; se recupera al ingresar desde otro dispositivo.
 - Foto, validación y contador se guardan en una sola transacción. El ID estable por paso evita duplicados en reintentos y concurrencia.
@@ -137,7 +137,7 @@ La foto conserva una marca con nombre, cargo, turno, punto, dirección configura
 
 ## 9. Validación antes de usar con agentes
 
-- ADMIN entra; CLIENTE ve rondas y avisos y no puede crear o editar registros administrativos.
+- ADMIN entra; CLIENTE ve rondas, agentes y avisos y no puede crear o editar registros administrativos.
 - Cada agente entra con su código y contraseña. Deshabilitarlo bloquea operaciones incluso con una sesión previa.
 - Realiza una ronda de prueba INICIO → PUNTO → FINAL. Escanea también uno fuera de orden.
 - Comprueba la foto en el panel y repite el envío del mismo punto: el contador no debe duplicarse.
@@ -172,3 +172,15 @@ Para los emuladores se necesita Java 21 o superior compatible con la versión de
 - `tests/`: pruebas de reglas, negocio y navegador.
 
 Las credenciales temporales se muestran una vez en la respuesta; no se guardan como texto en Firestore ni en archivos del proyecto. Guarda tus variables privadas únicamente en Vercel y, si migras localmente, en un `.env.local` privado.
+
+## Notificar novedades (opcional)
+
+El botón **Notificar novedades** aparece en la pantalla del agente, en la comprobación del QR y en la cámara del punto. Abre una ventana independiente: no inicia, cancela, pausa ni valida la ronda, y conserva la foto pendiente del punto. Si el lector QR estaba abierto, se libera su cámara para tomar la foto de la novedad; al volver puedes pulsar Escanear QR otra vez.
+
+1. Toma una foto y escribe la novedad. El texto escrito o pegado se convierte a MAYÚSCULAS, incluyendo tildes y Ñ.
+2. Pulsa **Preparar foto con marca de agua**. El JPEG incorpora PREVENCIÓN · NOVEDAD, código/nombre del agente, cargo, turno, fecha y hora del dispositivo en Lima, y la descripción. La hora es declarada por el dispositivo, no una certificación del servidor.
+3. Pulsa **Enviar por WhatsApp**. En dispositivos con soporte de compartir archivos se abre el menú del sistema: elige WhatsApp y el destinatario. La web no puede seleccionar WhatsApp automáticamente ni confirmar recepción.
+4. Si el dispositivo no permite compartir archivos, usa **Descargar foto** y **Abrir WhatsApp con el texto**; adjunta la fotografía descargada en el chat. El enlace solo transporta texto.
+5. **Volver a mi ronda** cierra la ventana y conserva esa novedad mientras permanezcas en la misma página. Recargar, navegar o salir elimina ese borrador; las novedades se comparten por WhatsApp y no se almacenan en el historial de rondas. **Descartar novedad** no descarta las fotos pendientes de los puntos.
+
+Para aplicar esta actualización publica nuevamente el proyecto completo en Vercel (`npm run build`). No requiere modificar las reglas de Firestore de esta versión. Cierra las pestañas de la PWA anterior y vuelve a abrirla para que entre el service worker actualizado. Las instrucciones de configuración/migración anteriores siguen aplicando si todavía usas la versión original.

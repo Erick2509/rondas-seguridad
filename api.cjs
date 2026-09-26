@@ -16,7 +16,7 @@ function makeHandler(deps=services){return async (req,res)=>{
   const s=deps(),a=await identify(s.auth,s.db,req.headers.authorization);await limit(s.db,s.Timestamp,a.uid);
   const rounds=engine(s),cat=catalog(s),notifications=push(s);
   const actions={
-   me:async()=>({usuario:a}),activa:rounds.active,iniciar:rounds.start,registrar:rounds.step,cancelar:rounds.cancel,ronda:rounds.get,rondas:rounds.history,detalle:rounds.details,evidencia:rounds.evidence,archivar:rounds.archive,'cerrar-ronda':rounds.closeLegacy,
+   me:async()=>{if(a.rol!=='AGENTE')return {usuario:a};const d=(await s.db.doc('agentes/'+a.agenteId).get()).data();return {usuario:a,agente:{codigo:a.agenteId,nombre:d.nombre,cargo:d.cargo,turno:d.turno}};},activa:rounds.active,iniciar:rounds.start,registrar:rounds.step,cancelar:rounds.cancel,ronda:rounds.get,rondas:rounds.history,detalle:rounds.details,evidencia:rounds.evidence,archivar:rounds.archive,'cerrar-ronda':rounds.closeLegacy,
    puntos:cat.points,'guardar-punto':cat.savePoint,'comprobar-rutas':cat.checkRoutes,agentes:cat.agents,'guardar-agente':cat.saveAgent,'credencial-agente':cat.credential,usuarios:cat.users,'guardar-usuario':cat.saveUser,'clave-panel':cat.resetPanel,
    'push-registrar':notifications.register,'push-quitar':notifications.unregister,'push-estado':notifications.status,'push-reintentar':notifications.retry,
    'push-procesar':async a=>{panel(a);return notifications.pending();},
