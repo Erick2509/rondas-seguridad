@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  // Toda operación de negocio pasa por /api/sistema, que comprueba Firebase
+  // Auth, rol, usuario activo, propiedad y transiciones. El Admin SDK necesita
+  // sus propios controles: estas reglas impiden cualquier bypass desde clientes.
+  match /{document=**} {
+   allow read, write: if false;
+  }
+ }
+}

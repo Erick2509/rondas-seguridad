@@ -1,0 +1,24 @@
+name: Reintentar notificaciones pendientes
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: notificaciones-pendientes
+  cancel-in-progress: false
+jobs:
+  procesar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Procesar cola autenticada
+        env:
+          APP_ORIGIN: ${{ secrets.APP_ORIGIN }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          test -n "$APP_ORIGIN"
+          test ${#CRON_SECRET} -ge 32
+          curl --fail --silent --show-error --max-time 75 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${APP_ORIGIN%/}/api/procesar-notificaciones"

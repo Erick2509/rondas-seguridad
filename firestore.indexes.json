@@ -1,0 +1,446 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteTurno",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tipoRonda",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteTurno",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tipoRonda",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteTurno",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tipoRonda",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteTurno",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tipoRonda",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteTurno",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tipoRonda",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteTurno",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tipoRonda",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteTurno",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tipoRonda",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "rondas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "archivada",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "agenteTurno",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tipoRonda",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "inicioTimestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "eventosPush",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "estado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nextAttemptAt",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "evidencias",
+      "fieldPath": "bytes",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "rondas",
+      "fieldPath": "ruta",
+      "indexes": []
+    }
+  ]
+}
