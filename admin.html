@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <link rel="manifest" href="/manifest-admin.json">
+  <meta name="theme-color" content="#172b4d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Administración">
+  <link rel="apple-touch-icon" href="/icons/admin-192.png">
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Panel de Administración</title>
+
+    <link rel="icon" href="data:,">
+
+        <link rel="stylesheet" href="css/estilos.css">
+
+</head>
+
+<body style="visibility:hidden">
+
+<section id="panelPush" style="margin:16px 0;padding:16px;background:#fff;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.06)">
+  <div style="font-weight:700;margin-bottom:8px">🔔 Notificaciones automáticas</div>
+  <div id="estadoPush" style="margin-bottom:10px">Comprobando...</div>
+  <button id="btnPush" type="button">🔔 ACTIVAR NOTIFICACIONES</button>
+</section>
+
+
+<header>
+
+    <div class="header-contenido">
+
+        <div class="header-identidad">
+            <div class="header-icono">🛡️</div>
+
+            <div>
+                <h1>Panel de Administración</h1>
+                <p>Sistema de rondas de seguridad</p>
+            </div>
+        </div>
+
+        <div id="barraSesion" class="sesion-panel">
+            <div class="sesion-usuario">
+                <div class="sesion-avatar">👤</div>
+
+                <div class="sesion-datos">
+                    <strong id="rolSesion">Verificando acceso...</strong>
+                    <span id="correoSesion"></span>
+                </div>
+            </div>
+
+            <button id="btnNotificaciones" class="btn-notificaciones" type="button" title="Notificaciones">🔔<span id="contadorNotificaciones" class="contador-notificaciones" hidden>0</span></button>
+<div id="panelNotificaciones" class="panel-notificaciones" hidden>
+  <div class="notificaciones-cabecera"><strong>🔔 Notificaciones</strong><button id="btnMarcarLeidas" type="button">Marcar leídas</button></div>
+  <div id="listaNotificaciones" class="lista-notificaciones"><div class="notificacion-vacia">No hay notificaciones.</div></div>
+</div>
+<button id="btnCerrarSesion" type="button">
+                <span class="icono-salir">↪</span>
+                CERRAR SESIÓN
+            </button>
+        </div>
+
+    </div>
+
+</header>
+
+
+<main class="contenedor">
+
+    <nav class="menu">
+
+        <button
+            id="menuInicio"
+            class="activo"
+            type="button"
+        >
+            📊 Inicio
+        </button>
+
+        <button
+            id="menuRondas"
+            type="button"
+        >
+            📋 Rondas
+        </button>
+
+        <button
+            id="menuQR"
+            type="button"
+        >
+            📱 Puntos / QR
+        </button>
+
+        <button
+            id="menuAgentes"
+            type="button"
+        >
+            👮 Agentes
+        </button>
+
+    </nav>
+
+
+    <!-- ============================= -->
+    <!-- INICIO -->
+    <!-- ============================= -->
+
+    <section
+        id="seccionInicio"
+        class="seccion activa"
+    >
+
+        <h2>Resumen</h2>
+
+        <div class="resumen">
+
+            <div class="tarjeta">
+                <div class="etiqueta">
+                    Rondas cargadas
+                </div>
+
+                <div
+                    id="totalRondas"
+                    class="numero"
+                >
+                    0
+                </div>
+            </div>
+
+
+            <div class="tarjeta">
+                <div class="etiqueta">
+                    Rondas de hoy
+                </div>
+
+                <div
+                    id="rondasHoy"
+                    class="numero"
+                >
+                    0
+                </div>
+            </div>
+
+
+            <div class="tarjeta">
+                <div class="etiqueta">
+                    Agentes registrados
+                </div>
+
+                <div
+                    id="totalAgentes"
+                    class="numero"
+                >
+                    0
+                </div>
+            </div>
+
+
+            <div class="tarjeta">
+                <div class="etiqueta">
+                    Puntos creados
+                </div>
+
+                <div
+                    id="totalPuntos"
+                    class="numero"
+                >
+                    0
+                </div>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ============================= -->
+    <!-- RONDAS -->
+    <!-- ============================= -->
+
+    <section
+        id="seccionRondas"
+        class="seccion"
+    >
+
+        <h2>
+            📋 Historial de rondas
+        </h2>
+
+        <div class="barra">
+
+            <input
+                id="buscador"
+                type="search"
+                placeholder="Buscar agente, punto, código, fecha..."
+            >
+
+            <button
+                id="btnActualizar"
+                class="btn-actualizar"
+                type="button"
+            >
+                🔄 Actualizar
+            </button>
+
+        </div>
+
+        <div
+            id="error"
+            class="error"
+        ></div>
+
+        <div
+            id="cargando"
+            class="cargando"
+        >
+            Cargando rondas...
+        </div>
+
+        <div id="listaRondas"></div>
+
+    </section>
+
+
+    <!-- ============================= -->
+    <!-- PUNTOS / QR -->
+    <!-- ============================= -->
+
+    <section
+        id="seccionQR"
+        class="seccion"
+    >
+
+        <div class="tarjeta qr-panel">
+
+            <h2 id="tituloFormularioQR">
+                📱 Crear punto y código QR
+            </h2>
+
+            <p>
+                Cada código de punto es único.
+                Un código existente no podrá registrarse nuevamente.
+            </p>
+
+            <label for="qrCodigo">
+                Código del punto
+            </label>
+
+            <input
+                id="qrCodigo"
+                type="text"
+                placeholder="Ejemplo: P02"
+                autocomplete="off"
+            >
+
+            <label for="qrNombre">
+                Nombre del punto
+            </label>
+
+            <input
+                id="qrNombre"
+                type="text"
+                placeholder="Ejemplo: Puerta Principal"
+                autocomplete="off"
+            >
+
+            <label for="qrTipoRonda">Tipo de ronda</label>
+            <select id="qrTipoRonda">
+                <option value="">Seleccionar tipo de ronda</option>
+                <option value="EXTERNA">🌳 Ronda Externa</option>
+                <option value="INTERNA">🏢 Ronda Interna</option>
+            </select>
+
+            <label for="qrFuncion">Función del QR</label>
+            <select id="qrFuncion">
+                <option value="">Seleccionar función</option>
+                <option value="INICIO">🟢 INICIO</option>
+                <option value="PUNTO">📍 PUNTO</option>
+                <option value="FINAL">🔴 FINAL</option>
+            </select>
+
+            <label for="qrOrden">Orden dentro de la ronda</label>
+            <input id="qrOrden" type="number" min="1" step="1" placeholder="Ejemplo: 1">
+            <div class="nota">El orden no puede repetirse dentro de la misma ronda.</div>
+
+            <button
+                id="btnGenerarQR"
+                class="btn-principal"
+                type="button"
+            >
+                💾 GUARDAR PUNTO Y GENERAR QR
+            </button>
+
+            <button
+                id="btnCancelarEdicionQR"
+                class="btn-actualizar"
+                type="button"
+                style="display:none; margin-top:10px;"
+            >
+                ✖ CANCELAR EDICIÓN
+            </button>
+
+            <div
+                id="qrError"
+                class="error"
+            ></div>
+
+            <div
+                id="qrResultado"
+                class="qr-resultado"
+            >
+
+                <div
+                    id="areaQR"
+                    class="area-qr"
+                >
+
+                    <div class="qr-titulo">
+                        🛡️ RONDA DE SEGURIDAD
+                    </div>
+
+                    <div
+                        id="qrNombreVisual"
+                        class="qr-nombre"
+                    ></div>
+
+                    <div
+                        id="qrCodigoVisual"
+                        class="qr-codigo"
+                    ></div>
+
+                    <div id="codigoQR"></div>
+
+                    <div
+                        id="qrUrl"
+                        class="qr-url"
+                    ></div>
+
+                </div>
+
+                <button
+                    id="btnDescargarQR"
+                    class="btn-descargar"
+                    type="button"
+                >
+                    ⬇ DESCARGAR QR
+                </button>
+
+                <button
+                    id="btnImprimirQR"
+                    class="btn-imprimir"
+                    type="button"
+                >
+                    🖨 IMPRIMIR QR
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="historial-qr">
+
+            <h2>
+                🗂️ Historial de QR creados
+            </h2>
+
+            <div class="barra">
+
+                <input
+                    id="buscarPunto"
+                    type="search"
+                    placeholder="Buscar P01, P02, Cochera..."
+                >
+
+                <button
+                    id="btnActualizarPuntos"
+                    class="btn-actualizar"
+                    type="button"
+                >
+                    🔄 Actualizar puntos
+                </button>
+
+                <button
+                    id="btnActualizarTodosQR"
+                    class="btn-principal"
+                    type="button"
+                    title="Regenerar todos los QR con el diseño PREVENCION"
+                >
+                    🛡️ ACTUALIZAR TODOS LOS QR
+                </button>
+
+            </div>
+
+            <div
+                id="cargandoPuntos"
+                class="cargando"
+            >
+                Cargando puntos...
+            </div>
+
+            <div id="listaPuntos"></div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ============================= -->
+    <!-- AGENTES -->
+    <!-- ============================= -->
+
+    <section
+        id="seccionAgentes"
+        class="seccion"
+    >
+
+        <div class="tarjeta agente-panel">
+
+            <h2 id="tituloFormularioAgente">
+                👮 Crear agente
+            </h2>
+
+            <p>
+                El código del agente es único.
+                Después de crear el agente,
+                su identificador no podrá modificarse.
+            </p>
+
+            <label for="agenteCodigo">
+                Código / identificador
+            </label>
+
+            <input
+                id="agenteCodigo"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                placeholder="Ejemplo: 002"
+                autocomplete="off"
+            >
+
+            <div class="nota">
+                Ejemplos: 001, 002, 003.
+                Al editar un agente este campo quedará bloqueado.
+            </div>
+
+
+            <label for="agenteNombre">
+                Nombre y apellidos
+            </label>
+
+            <input
+                id="agenteNombre"
+                type="text"
+                placeholder="Ejemplo: Juan Pérez"
+                autocomplete="off"
+            >
+
+
+            <label for="agenteCargo">
+                Cargo
+            </label>
+
+            <input
+                id="agenteCargo"
+                type="text"
+                placeholder="Ejemplo: Agente de Seguridad"
+                autocomplete="off"
+            >
+
+
+            <label for="agenteTurno">
+                Turno
+            </label>
+
+            <select id="agenteTurno">
+
+                <option value="">
+                    Seleccionar turno
+                </option>
+
+                <option value="Día">
+                    Día
+                </option>
+
+                <option value="Noche">
+                    Noche
+                </option>
+
+                <option value="Rotativo">
+                    Rotativo
+                </option>
+
+            </select>
+
+
+            <button
+                id="btnGuardarAgente"
+                class="btn-principal"
+                type="button"
+            >
+                💾 GUARDAR AGENTE
+            </button>
+
+
+            <button
+                id="btnCancelarEdicionAgente"
+                class="btn-secundario"
+                type="button"
+                style="display:none"
+            >
+                CANCELAR EDICIÓN
+            </button>
+
+
+            <div
+                id="agenteMensaje"
+                class="error"
+            ></div>
+
+        </div>
+
+
+        <div class="historial-agentes">
+
+            <h2>
+                👮 Agentes registrados
+            </h2>
+
+            <div class="barra">
+
+                <input
+                    id="buscarAgente"
+                    type="search"
+                    placeholder="Buscar código, nombre, cargo o turno..."
+                >
+
+                <button
+                    id="btnActualizarAgentes"
+                    class="btn-actualizar"
+                    type="button"
+                >
+                    🔄 Actualizar agentes
+                </button>
+
+            </div>
+
+
+            <div
+                id="cargandoAgentes"
+                class="cargando"
+            >
+                Cargando agentes...
+            </div>
+
+            <div id="listaAgentes"></div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<script
+    src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+></script>
+
+<script
+    type="module"
+    src="js/admin.js"
+></script>
+
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js")
+      .catch(err => console.error("Service Worker:", err));
+  });
+}
+</script>
+
+</body>
+</html>

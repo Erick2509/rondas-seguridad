@@ -1,0 +1,24 @@
+IMAGEKIT - CONFIGURACION PARA RONDAS SEGURIDAD
+
+1. Crea una cuenta gratuita de ImageKit.
+2. En Developer Options > API Keys, crea/preferentemente usa una Restricted API Key con Media Management = Read and write y Account Management = None.
+3. En Vercel > tu proyecto > Settings > Environment Variables agrega:
+   IMAGEKIT_PRIVATE_KEY = private_xxxxxxxxx
+4. NO pongas IMAGEKIT_PRIVATE_KEY en firebase.js, camara.js, GitHub ni archivos públicos.
+5. Vuelve a desplegar el proyecto en Vercel.
+
+OPTIMIZACION IMPLEMENTADA
+- Formato: WebP.
+- Ancho máximo previo: 1200 px.
+- Objetivo aproximado: 180 KB por evidencia.
+- Máximo aceptado por API: 260 KB.
+- Si la foto supera el objetivo se reduce calidad y, si hace falta, dimensiones.
+- Si ImageKit falla, la ronda NO se bloquea: Firestore registra el punto y la foto puede compartirse desde el dispositivo.
+- Firestore guarda fotoUrl, fotoFileId, fotoPath, fotoBytes y evidenciaGuardada.
+
+CAPACIDAD ESTIMADA
+8 rondas/día x 14 fotos = 112 fotos/día.
+A 180 KB objetivo: ~20 MB/día, ~605 MB/mes, ~1.81 GB/90 días.
+
+IMPORTANTE
+La limpieza automática de 90 días debe activarse después de confirmar la cuenta/API de ImageKit y probar una subida real. No se incluyeron claves ni datos secretos en este ZIP.
