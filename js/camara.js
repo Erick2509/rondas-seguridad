@@ -300,7 +300,7 @@ async function generarImagen(img) {
 
   const esVertical = h >= w;
   const dosColumnas = !esVertical && w >= 900;
-  const info = dosColumnas ? 430 : (esVertical ? 620 : 520);
+  const info = dosColumnas ? 430 : (esVertical ? 720 : 520);
   canvas.width = w;
   canvas.height = h + info;
   const ctx = canvas.getContext("2d");
@@ -381,8 +381,9 @@ async function generarImagen(img) {
     lineas(ctx, `📌 Dirección: ${direccionActual}`, margen, h + 382, w - (margen * 2), 30);
   } else {
     let y = h + 152;
-    const salto = esVertical ? 40 : 38;
     const maxTexto = w - (margen * 2);
+    const lineHeight = esVertical ? 32 : 30;
+    const blockGap = esVertical ? 12 : 10;
     const filas = [
       `🧭 Ronda: ${datosRonda.tipoRonda}`,
       `👮 Agente: ${datosRonda.agente.nombre}`,
@@ -395,11 +396,38 @@ async function generarImagen(img) {
       `📅 Fecha: ${fecha}`,
       `🕐 Hora: ${hora}`
     ];
+
     for (const fila of filas) {
-      y = lineas(ctx, fila, margen, y, maxTexto, 28);
-      y += 14;
+      const palabras = String(fila).split(" ");
+      let linea = "";
+      let lineCount = 1;
+      for (let i = 0; i < palabras.length; i++) {
+        const prueba = linea + palabras[i] + " ";
+        if (ctx.measureText(prueba).width > maxTexto && i > 0) {
+          linea = palabras[i] + " ";
+          lineCount += 1;
+        } else {
+          linea = prueba;
+        }
+      }
+      lineas(ctx, fila, margen, y, maxTexto, lineHeight);
+      y += (lineCount * lineHeight) + blockGap;
     }
-    lineas(ctx, `📌 Dirección: ${direccionActual}`, margen, y + 2, maxTexto, 30);
+
+    const palabrasDir = (`📌 Dirección: ${direccionActual}`).split(" ");
+    let lineaDir = "";
+    let lineCountDir = 1;
+    for (let i = 0; i < palabrasDir.length; i++) {
+      const prueba = lineaDir + palabrasDir[i] + " ";
+      if (ctx.measureText(prueba).width > maxTexto && i > 0) {
+        lineaDir = palabrasDir[i] + " ";
+        lineCountDir += 1;
+      } else {
+        lineaDir = prueba;
+      }
+    }
+    lineas(ctx, `📌 Dirección: ${direccionActual}`, margen, y, maxTexto, lineHeight);
+    y += (lineCountDir * lineHeight);
   }
 
   ctx.fillStyle = "#94a3b8";
