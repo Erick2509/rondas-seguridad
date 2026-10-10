@@ -43,7 +43,7 @@ let fechaFoto = null;
 let streamCamara = null;
 
 const logoMarca = new Image();
-logoMarca.src = "icons/logo-prevencion.png";
+logoMarca.src = "icons/logo-prevencion-recortado.png";
 logoMarca.decoding = "async";
 const logoLista = new Promise(resolve => {
   if (logoMarca.complete) return resolve(true);
@@ -297,16 +297,30 @@ async function generarImagen(img) {
   const logoDisponible = await logoLista;
   if (logoDisponible) {
     const pad = 20;
-    const boxW = Math.min(270, Math.max(165, w * 0.26));
-    const boxH = Math.round(boxW * 0.34);
+    const ratio = logoMarca.naturalWidth && logoMarca.naturalHeight
+      ? logoMarca.naturalWidth / logoMarca.naturalHeight
+      : 6.5;
+    const boxW = Math.min(320, Math.max(210, w * 0.30));
+    const innerW = boxW - 28;
+    const innerH = innerW / ratio;
+    const boxH = Math.max(54, Math.round(innerH + 22));
     const boxX = w - boxW - pad;
     const boxY = pad;
     ctx.save();
-    ctx.fillStyle = "rgba(15, 23, 42, 0.76)";
-    rectRedondeado(ctx, boxX, boxY, boxW, boxH, 16);
+    ctx.shadowColor = "rgba(0,0,0,0.28)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 5;
+    ctx.fillStyle = "rgba(17, 24, 39, 0.88)";
+    rectRedondeado(ctx, boxX, boxY, boxW, boxH, 18);
     ctx.fill();
-    const logoPad = 14;
-    ctx.drawImage(logoMarca, boxX + logoPad, boxY + logoPad, boxW - logoPad * 2, boxH - logoPad * 2);
+    ctx.shadowColor = "transparent";
+    ctx.strokeStyle = "rgba(251, 191, 36, 0.85)";
+    ctx.lineWidth = 2;
+    rectRedondeado(ctx, boxX, boxY, boxW, boxH, 18);
+    ctx.stroke();
+    const logoX = boxX + 14;
+    const logoY = boxY + (boxH - innerH) / 2;
+    ctx.drawImage(logoMarca, logoX, logoY, innerW, innerH);
     ctx.restore();
   }
 
@@ -634,7 +648,7 @@ btnSiguiente.addEventListener("click", () => {
   if (esFinal) {
     localStorage.removeItem("rondaActiva");
     sessionStorage.removeItem("rondaActiva");
-    document.body.innerHTML = `<div class="container py-5"><div class="card shadow-sm mx-auto" style="max-width:600px;border-radius:24px;overflow:hidden"><div style="background:#111827;padding:24px;text-align:center"><img src="icons/logo-prevencion.png" alt="Prevención" style="width:min(280px,80vw);max-height:72px;object-fit:contain"></div><div class="card-body text-center p-5"><div class="fs-1">✅</div><h2>Ronda completada</h2><p class="lead">La ronda finalizó correctamente.</p><a href="index.html" class="btn btn-primary btn-lg w-100">VOLVER AL INICIO</a></div></div></div>`;
+    document.body.innerHTML = `<div class="container py-5"><div class="card shadow-sm mx-auto" style="max-width:600px;border-radius:24px;overflow:hidden"><div style="background:#111827;padding:24px;text-align:center"><img src="icons/logo-prevencion-recortado.png" alt="Prevención" style="width:min(280px,80vw);max-height:72px;object-fit:contain"></div><div class="card-body text-center p-5"><div class="fs-1">✅</div><h2>Ronda completada</h2><p class="lead">La ronda finalizó correctamente.</p><a href="index.html" class="btn btn-primary btn-lg w-100">VOLVER AL INICIO</a></div></div></div>`;
   } else {
     location.href = "index.html";
   }

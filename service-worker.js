@@ -31,7 +31,7 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(clients.openWindow(destino));
 });
 
-const CACHE_NAME = "rondas-seguridad-v15-marca-agua-pro";
+const CACHE_NAME = "rondas-seguridad-v16-logo-crop";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -50,7 +50,7 @@ const APP_SHELL = [
   "/icons/rondas-512.png",
   "/icons/admin-192.png",
   "/icons/admin-512.png",
-  "/icons/logo-prevencion.png"
+  "/icons/logo-prevencion-recortado.png"
 ];
 
 self.addEventListener("install", event => {
