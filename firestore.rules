@@ -129,7 +129,7 @@ service cloud.firestore {
           request.resource.data.qrValidado == true &&
           request.resource.data.metodoValidacion == "QR_FISICO" &&
           request.resource.data.evidenciaWhatsApp == true &&
-          request.resource.data.fotoAlmacenada == false &&
+          
           puntoActivo(codigo) &&
           get(/databases/$(database)/documents/puntos/$(codigo)).data.tipoRonda ==
             get(/databases/$(database)/documents/rondas/$(rondaId)).data.tipoRonda &&

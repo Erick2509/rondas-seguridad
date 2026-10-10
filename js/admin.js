@@ -1179,7 +1179,7 @@ function crearBloqueValidaciones(ronda) {
             if (validacion.evidenciaWhatsApp === true || validacion.metodoEvidencia === "WHATSAPP_GRUPO") {
                 const evidencia = document.createElement("div");
                 evidencia.className = "detalle-validacion-extra";
-                evidencia.textContent = "📲 Evidencia: enviada por WhatsApp · foto no almacenada";
+                evidencia.textContent = "📲 Evidencia: enviada por WhatsApp";
                 item.appendChild(evidencia);
             }
 

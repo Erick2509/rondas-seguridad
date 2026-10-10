@@ -19,13 +19,17 @@ const $ = id => document.getElementById(id);
 const informacion = $("informacion");
 const gps = $("gps");
 const seccionFoto = $("seccionFoto");
-const fotoInput = $("foto");
 const vistaPrevia = $("vistaPrevia");
 const canvas = $("canvas");
 const estado = $("estado");
 const btnCompartir = $("btnCompartir");
 const btnConfirmarEnvio = $("btnConfirmarEnvio");
 const btnSiguiente = $("btnSiguiente");
+const btnActivarCamara = $("btnActivarCamara");
+const btnTomarFoto = $("btnTomarFoto");
+const btnRepetirFoto = $("btnRepetirFoto");
+const videoCamara = $("videoCamara");
+const contenedorCamara = $("contenedorCamara");
 const error = $("error");
 
 let datosRonda = null;
@@ -36,9 +40,17 @@ let registrado = false;
 let compartido = false;
 let gpsWatchId = null;
 let fechaFoto = null;
+let streamCamara = null;
 
-// La imagen se comprime únicamente para enviarla por WhatsApp.
-// No se sube ni se almacena en ningún servicio de archivos.
+const logoMarca = new Image();
+logoMarca.src = "icons/logo-prevencion.png";
+logoMarca.decoding = "async";
+const logoLista = new Promise(resolve => {
+  if (logoMarca.complete) return resolve(true);
+  logoMarca.onload = () => resolve(true);
+  logoMarca.onerror = () => resolve(false);
+});
+
 const OBJETIVO_EVIDENCIA = 180 * 1024;
 const MAX_EVIDENCIA = 240 * 1024;
 
@@ -152,9 +164,49 @@ async function obtenerDireccion(lat, lon) {
   }
 }
 
-fotoInput.addEventListener("change", async evento => {
-  const archivo = evento.target.files[0];
-  if (!archivo) return;
+async function iniciarCamara() {
+  ocultarError();
+  if (streamCamara) return;
+
+  try {
+    streamCamara = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    });
+
+    videoCamara.srcObject = streamCamara;
+    await videoCamara.play();
+    btnTomarFoto.disabled = false;
+    btnActivarCamara.classList.add("d-none");
+    btnRepetirFoto.classList.add("d-none");
+    contenedorCamara.classList.remove("d-none");
+  } catch (e) {
+    btnTomarFoto.disabled = true;
+    mostrarError("No se pudo abrir la cámara. Revisa los permisos del navegador.");
+  }
+}
+
+function detenerCamara() {
+  if (streamCamara) {
+    for (const track of streamCamara.getTracks()) track.stop();
+  }
+  streamCamara = null;
+  videoCamara.srcObject = null;
+  btnTomarFoto.disabled = true;
+  btnActivarCamara.classList.remove("d-none");
+}
+
+btnActivarCamara.addEventListener("click", iniciarCamara);
+
+btnTomarFoto.addEventListener("click", async () => {
+  if (!streamCamara || !videoCamara.videoWidth) {
+    mostrarError("Primero debes activar la cámara.");
+    return;
+  }
 
   ocultarError();
   registrado = false;
@@ -171,13 +223,26 @@ fotoInput.addEventListener("change", async evento => {
     ? await obtenerDireccion(ubicacionActual.latitud, ubicacionActual.longitud)
     : "Ubicación GPS no disponible";
 
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const img = new Image();
-    img.onload = () => generarImagen(img);
-    img.src = ev.target.result;
+  const captura = document.createElement("canvas");
+  captura.width = videoCamara.videoWidth;
+  captura.height = videoCamara.videoHeight;
+  captura.getContext("2d").drawImage(videoCamara, 0, 0, captura.width, captura.height);
+
+  const img = new Image();
+  img.onload = async () => {
+    await generarImagen(img);
+    detenerCamara();
+    btnRepetirFoto.classList.remove("d-none");
   };
-  reader.readAsDataURL(archivo);
+  img.src = captura.toDataURL("image/jpeg", 0.92);
+});
+
+btnRepetirFoto.addEventListener("click", async () => {
+  vistaPrevia.classList.add("d-none");
+  btnConfirmarEnvio.classList.add("d-none");
+  btnSiguiente.classList.add("d-none");
+  btnCompartir.classList.add("d-none");
+  await iniciarCamara();
 });
 
 function lineas(ctx, texto, x, y, max, alto) {
@@ -200,7 +265,7 @@ function lineas(ctx, texto, x, y, max, alto) {
   return py;
 }
 
-function generarImagen(img) {
+async function generarImagen(img) {
   const max = 1200;
   let w = img.width;
   let h = img.height;
@@ -211,7 +276,7 @@ function generarImagen(img) {
     h *= proporcion;
   }
 
-  const info = 540;
+  const info = 560;
   canvas.width = w;
   canvas.height = h + info;
   const ctx = canvas.getContext("2d");
@@ -219,23 +284,37 @@ function generarImagen(img) {
   ctx.drawImage(img, 0, 0, w, h);
   ctx.fillStyle = "#111827";
   ctx.fillRect(0, h, w, info);
+
+  ctx.fillStyle = "#fbbf24";
+  ctx.fillRect(0, h, w, 10);
+
+  const logoDisponible = await logoLista;
+  if (logoDisponible) {
+    const logoAncho = Math.min(300, Math.max(170, w * 0.28));
+    const proporcion = logoMarca.naturalWidth && logoMarca.naturalHeight
+      ? logoMarca.naturalHeight / logoMarca.naturalWidth
+      : 0.22;
+    const logoAlto = logoAncho * proporcion;
+    ctx.drawImage(logoMarca, 30, h + 24, logoAncho, logoAlto);
+  }
+
   ctx.fillStyle = "#fff";
   ctx.font = "bold 30px Arial";
-  ctx.fillText("🛡️ RONDA DE SEGURIDAD", 30, h + 45);
+  ctx.fillText("EVIDENCIA DE RONDA", 30, h + 105);
   ctx.font = "22px Arial";
 
   const fecha = fechaFoto.toLocaleDateString("es-PE");
   const hora = fechaFoto.toLocaleTimeString("es-PE");
 
-  ctx.fillText(`🧭 Ronda ${datosRonda.tipoRonda}`, 30, h + 90);
-  ctx.fillText(`👮 ${datosRonda.agente.nombre}`, 30, h + 130);
-  ctx.fillText(`🦺 ${datosRonda.agente.cargo}`, 30, h + 170);
-  ctx.fillText(`🕐 ${datosRonda.agente.turno}`, 30, h + 210);
-  ctx.fillText(`📍 ${datosRonda.punto.nombre} (${datosRonda.punto.codigo})`, 30, h + 250);
-  ctx.fillText(`🔢 Orden: ${datosRonda.punto.orden}`, 30, h + 290);
-  ctx.fillText(`📅 Fecha: ${fecha}`, 30, h + 330);
-  ctx.fillText(`🕐 Hora: ${hora}`, 30, h + 370);
-  lineas(ctx, `📌 ${direccionActual}`, 30, h + 415, w - 60, 30);
+  ctx.fillText(`🧭 Ronda ${datosRonda.tipoRonda}`, 30, h + 150);
+  ctx.fillText(`👮 ${datosRonda.agente.nombre}`, 30, h + 190);
+  ctx.fillText(`🦺 ${datosRonda.agente.cargo}`, 30, h + 230);
+  ctx.fillText(`🕐 ${datosRonda.agente.turno}`, 30, h + 270);
+  ctx.fillText(`📍 ${datosRonda.punto.nombre} (${datosRonda.punto.codigo})`, 30, h + 310);
+  ctx.fillText(`🔢 Orden: ${datosRonda.punto.orden}`, 30, h + 350);
+  ctx.fillText(`📅 Fecha: ${fecha}`, 30, h + 390);
+  ctx.fillText(`🕐 Hora: ${hora}`, 30, h + 430);
+  lineas(ctx, `📌 ${direccionActual}`, 30, h + 475, w - 60, 30);
 
   comprimirEvidencia(canvas)
     .then(blob => {
@@ -251,7 +330,7 @@ function generarImagen(img) {
         `📌 ${direccionActual}`,
         `📲 Lista para WhatsApp: ${Math.round(blob.size / 1024)} KB`,
         "",
-        "Debes enviarla al grupo de WhatsApp antes de continuar."
+        "Envía la fotografía al grupo de WhatsApp antes de continuar."
       ]);
       btnCompartir.classList.remove("d-none");
     })
@@ -293,7 +372,7 @@ function textoWhatsApp() {
   const fecha = fechaFoto.toLocaleDateString("es-PE");
   const hora = fechaFoto.toLocaleTimeString("es-PE");
 
-  return `🛡️ RONDA DE SEGURIDAD\n\n` +
+  return `🛡️ PREVENCIÓN\n\n` +
     `🧭 Ronda: ${datosRonda.tipoRonda}\n` +
     `👮 ${datosRonda.agente.nombre}\n` +
     `🦺 ${datosRonda.agente.cargo}\n` +
@@ -357,7 +436,6 @@ async function compartir() {
     if (e?.name !== "AbortError") {
       mostrarError("No se pudo compartir: " + (e.message || "Error"));
     }
-    // Si el usuario cancela el selector de compartir, no habilitamos el avance.
   }
 }
 
@@ -390,7 +468,6 @@ async function registrarDespuesDeWhatsApp() {
 
     const rondaRef = doc(db, "rondas", datosRonda.rondaId);
     const puntoRef = doc(db, "puntos", datosRonda.punto.id || datosRonda.punto.codigo);
-    // ID determinista: un punto solo puede validarse una vez por ronda.
     const validacionRef = doc(db, "rondas", datosRonda.rondaId, "validaciones", datosRonda.punto.codigo);
 
     const esFinal = datosRonda.punto.funcionQR === "FINAL";
@@ -426,8 +503,6 @@ async function registrarDespuesDeWhatsApp() {
         throw new Error("La configuración actual del QR no coincide con la ronda.");
       }
 
-      // No leemos la subcolección desde la PWA. Si el documento ya existe,
-      // las reglas de Firestore rechazan la escritura duplicada.
       transaction.set(validacionRef, {
         puntoId: datosRonda.punto.id,
         puntoCodigo: datosRonda.punto.codigo,
@@ -444,7 +519,6 @@ async function registrarDespuesDeWhatsApp() {
         metodoValidacion: "QR_FISICO",
         evidenciaWhatsApp: true,
         metodoEvidencia: "WHATSAPP_GRUPO",
-        fotoAlmacenada: false,
         timestamp: serverTimestamp()
       });
 
@@ -485,8 +559,7 @@ async function registrarDespuesDeWhatsApp() {
       `🧭 Ronda ${datosRonda.tipoRonda}`,
       `📍 ${datosRonda.punto.nombre}`,
       "📱 QR físico: VALIDADO",
-      "📲 Evidencia: enviada por WhatsApp",
-      "☁️ Foto almacenada en el sistema: NO"
+      "📲 Evidencia: enviada por WhatsApp"
     ]);
 
     btnCompartir.classList.add("d-none");
@@ -522,7 +595,7 @@ btnSiguiente.addEventListener("click", () => {
   if (esFinal) {
     localStorage.removeItem("rondaActiva");
     sessionStorage.removeItem("rondaActiva");
-    document.body.innerHTML = `<div class="container py-5"><div class="card shadow-sm mx-auto" style="max-width:600px"><div class="card-body text-center p-5"><div class="fs-1">✅</div><h2>Ronda completada</h2><p class="lead">La ronda finalizó correctamente.</p><a href="index.html" class="btn btn-primary btn-lg w-100">VOLVER AL INICIO</a></div></div></div>`;
+    document.body.innerHTML = `<div class="container py-5"><div class="card shadow-sm mx-auto" style="max-width:600px;border-radius:24px;overflow:hidden"><div style="background:#111827;padding:24px;text-align:center"><img src="icons/logo-prevencion.png" alt="Prevención" style="width:min(280px,80vw);max-height:72px;object-fit:contain"></div><div class="card-body text-center p-5"><div class="fs-1">✅</div><h2>Ronda completada</h2><p class="lead">La ronda finalizó correctamente.</p><a href="index.html" class="btn btn-primary btn-lg w-100">VOLVER AL INICIO</a></div></div></div>`;
   } else {
     location.href = "index.html";
   }
@@ -530,6 +603,7 @@ btnSiguiente.addEventListener("click", () => {
 
 window.addEventListener("pagehide", () => {
   if (gpsWatchId !== null) navigator.geolocation.clearWatch(gpsWatchId);
+  detenerCamara();
 });
 
 if (cargarDatos()) iniciarGPS();

@@ -13,25 +13,60 @@
   <title>Registrar Ronda</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="css/estilos.css">
+  <style>
+    body{background:linear-gradient(180deg,#f7f8fb 0%,#eef2f7 100%)}
+    .capture-card{border:0;border-radius:24px;overflow:hidden}
+    .capture-top{background:#111827;color:#fff;padding:22px 22px 18px}
+    .capture-top img{width:min(270px,78vw);max-height:72px;object-fit:contain;display:block;margin:0 auto 12px}
+    .capture-top h2{margin:0;font-size:clamp(1.4rem,2vw,2rem);font-weight:800;text-align:center}
+    .capture-top p{margin:6px 0 0;text-align:center;color:#d1d5db}
+    .capture-body{padding:18px}
+    .camera-box,.preview-box{background:#0f172a;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 26px rgba(15,23,42,.12)}
+    .camera-box video,.preview-box canvas{display:block;width:100%;height:auto;max-height:68vh;object-fit:cover;background:#000}
+    .camera-actions,.share-actions{display:grid;gap:10px;margin-top:14px}
+    .helper-note{font-size:.95rem;color:#64748b;text-align:center;margin-top:10px}
+    .section-title{font-size:1.05rem;font-weight:800;margin-bottom:10px;color:#0f172a}
+    @media (min-width:768px){
+      .capture-body{padding:24px}
+    }
+  </style>
 </head>
 <body>
-<div class="container py-4">
-  <div class="card shadow-sm mx-auto" style="max-width:600px">
-    <div class="card-body">
-      <div class="text-center mb-4"><div class="fs-1">🛡️</div><h2>Registrar Ronda</h2><p class="text-muted">Evidencia del punto de control</p></div>
+<div class="container py-3 py-md-4">
+  <div class="card shadow capture-card mx-auto" style="max-width:760px">
+    <div class="capture-top">
+      <img src="icons/logo-prevencion.png" alt="Prevención">
+      <h2>Registro de evidencia</h2>
+      <p>Toma la foto del punto, compártela por WhatsApp y continúa con la ronda.</p>
+    </div>
+    <div class="capture-body">
       <div id="informacion" class="alert alert-info">Cargando información...</div>
       <div id="gps" class="alert alert-warning">📍 Obteniendo ubicación...</div>
+
       <div id="seccionFoto" class="d-none">
-        <label for="foto" class="btn btn-primary btn-lg w-100">📷 TOMAR FOTOGRAFÍA</label>
-        <input type="file" id="foto" accept="image/*" capture="environment" class="d-none">
+        <div class="section-title">1. Toma la fotografía del punto</div>
+        <div id="contenedorCamara" class="camera-box mb-3">
+          <video id="videoCamara" playsinline autoplay muted></video>
+        </div>
+        <div class="camera-actions">
+          <button id="btnActivarCamara" type="button" class="btn btn-primary btn-lg w-100">📷 ACTIVAR CÁMARA</button>
+          <button id="btnTomarFoto" type="button" class="btn btn-warning btn-lg w-100" disabled>📸 TOMAR FOTO</button>
+          <button id="btnRepetirFoto" type="button" class="btn btn-outline-secondary btn-lg w-100 d-none">🔄 TOMAR OTRA FOTO</button>
+        </div>
+        <div class="helper-note">Por seguridad, esta pantalla usa únicamente la cámara del dispositivo y no permite escoger imágenes ya guardadas.</div>
       </div>
+
       <div id="vistaPrevia" class="d-none mt-4">
-        <h5 class="mb-3">Evidencia</h5>
-        <canvas id="canvas" class="img-fluid rounded border"></canvas>
+        <div class="section-title">2. Revisa la evidencia</div>
+        <div class="preview-box">
+          <canvas id="canvas"></canvas>
+        </div>
         <div id="estado" class="alert alert-success mt-3">✅ Fotografía preparada</div>
-        <button id="btnCompartir" class="btn btn-success btn-lg w-100">📲 ENVIAR FOTO AL GRUPO DE WHATSAPP</button>
-        <button id="btnConfirmarEnvio" class="btn btn-primary btn-lg w-100 mt-2 d-none">✅ YA LA ENVIÉ AL GRUPO</button>
-        <button id="btnSiguiente" class="btn btn-dark btn-lg w-100 mt-2 d-none">🔄 CONTINUAR RONDA</button>
+        <div class="share-actions">
+          <button id="btnCompartir" class="btn btn-success btn-lg w-100">📲 ENVIAR FOTO AL GRUPO DE WHATSAPP</button>
+          <button id="btnConfirmarEnvio" class="btn btn-primary btn-lg w-100 d-none">✅ YA LA ENVIÉ AL GRUPO</button>
+          <button id="btnSiguiente" class="btn btn-dark btn-lg w-100 d-none">🔄 CONTINUAR RONDA</button>
+        </div>
       </div>
       <div id="error" class="alert alert-danger d-none mt-3"></div>
     </div>

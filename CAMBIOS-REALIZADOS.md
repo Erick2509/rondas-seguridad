@@ -25,7 +25,7 @@
 - El historial ya no depende de la configuración actual de puntos para reconstruir recorridos nuevos.
 - El detalle de QR se carga solo cuando se pulsa **VER DETALLE**.
 - Corregida la visualización de GPS cuando latitud/longitud son nulos.
-- El detalle indica que la evidencia fue enviada por WhatsApp y que la foto no está almacenada.
+- El detalle indica que la evidencia fue enviada por WhatsApp.
 
 ## Optimización Firestore
 
