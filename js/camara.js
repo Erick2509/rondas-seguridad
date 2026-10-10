@@ -164,6 +164,12 @@ async function obtenerDireccion(lat, lon) {
   }
 }
 
+
+function ajustarRelacionCaja(caja, ancho, alto) {
+  if (!caja || !ancho || !alto) return;
+  caja.style.aspectRatio = `${ancho} / ${alto}`;
+}
+
 async function iniciarCamara() {
   ocultarError();
   if (streamCamara) return;
@@ -180,6 +186,7 @@ async function iniciarCamara() {
 
     videoCamara.srcObject = streamCamara;
     await videoCamara.play();
+    ajustarRelacionCaja(contenedorCamara, videoCamara.videoWidth || 3, videoCamara.videoHeight || 4);
     btnTomarFoto.disabled = false;
     btnActivarCamara.classList.add("d-none");
     btnRepetirFoto.classList.add("d-none");
@@ -199,6 +206,10 @@ function detenerCamara() {
   btnTomarFoto.disabled = true;
   btnActivarCamara.classList.remove("d-none");
 }
+
+videoCamara.addEventListener("loadedmetadata", () => {
+  ajustarRelacionCaja(contenedorCamara, videoCamara.videoWidth || 3, videoCamara.videoHeight || 4);
+});
 
 btnActivarCamara.addEventListener("click", iniciarCamara);
 
@@ -287,7 +298,9 @@ async function generarImagen(img) {
     h *= proporcion;
   }
 
-  const info = 560;
+  const esVertical = h >= w;
+  const dosColumnas = !esVertical && w >= 900;
+  const info = dosColumnas ? 430 : (esVertical ? 620 : 520);
   canvas.width = w;
   canvas.height = h + info;
   const ctx = canvas.getContext("2d");
@@ -332,41 +345,65 @@ async function generarImagen(img) {
 
   const fecha = fechaFoto.toLocaleDateString("es-PE");
   const hora = fechaFoto.toLocaleTimeString("es-PE");
-  const margen = 30;
-  const col2X = Math.max(w * 0.5, 360);
+  const margen = esVertical ? 26 : 30;
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 34px Arial";
-  ctx.fillText("EVIDENCIA DE RONDA", margen, h + 60);
+  ctx.font = `bold ${esVertical ? 28 : 34}px Arial`;
+  ctx.fillText("EVIDENCIA DE RONDA", margen, h + 56);
   ctx.fillStyle = "#cbd5e1";
-  ctx.font = "18px Arial";
-  ctx.fillText("Registro validado para control de seguridad", margen, h + 92);
+  ctx.font = `${esVertical ? 16 : 18}px Arial`;
+  ctx.fillText("Registro validado para control de seguridad", margen, h + 86);
 
   ctx.strokeStyle = "rgba(255,255,255,0.14)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(margen, h + 118);
-  ctx.lineTo(w - margen, h + 118);
+  ctx.moveTo(margen, h + 110);
+  ctx.lineTo(w - margen, h + 110);
   ctx.stroke();
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "22px Arial";
-  ctx.fillText(`🧭 Ronda: ${datosRonda.tipoRonda}`, margen, h + 160);
-  ctx.fillText(`👮 Agente: ${datosRonda.agente.nombre}`, margen, h + 202);
-  ctx.fillText(`🦺 Cargo: ${datosRonda.agente.cargo}`, margen, h + 244);
-  ctx.fillText(`🕐 Turno: ${datosRonda.agente.turno}`, margen, h + 286);
+  ctx.font = `${esVertical ? 20 : 22}px Arial`;
 
-  ctx.fillText(`📍 Punto: ${datosRonda.punto.nombre}`, col2X, h + 160);
-  ctx.fillText(`🔲 Código: ${datosRonda.punto.codigo}`, col2X, h + 202);
-  ctx.fillText(`🔢 Orden: ${datosRonda.punto.orden}`, col2X, h + 244);
-  ctx.fillText(`📱 QR físico: Validado`, col2X, h + 286);
+  if (dosColumnas) {
+    const col2X = Math.max(w * 0.53, 420);
+    ctx.fillText(`🧭 Ronda: ${datosRonda.tipoRonda}`, margen, h + 152);
+    ctx.fillText(`👮 Agente: ${datosRonda.agente.nombre}`, margen, h + 194);
+    ctx.fillText(`🦺 Cargo: ${datosRonda.agente.cargo}`, margen, h + 236);
+    ctx.fillText(`🕐 Turno: ${datosRonda.agente.turno}`, margen, h + 278);
 
-  ctx.fillText(`📅 Fecha: ${fecha}`, margen, h + 340);
-  ctx.fillText(`🕐 Hora: ${hora}`, col2X, h + 340);
-  lineas(ctx, `📌 Dirección: ${direccionActual}`, margen, h + 390, w - (margen * 2), 30);
+    ctx.fillText(`📍 Punto: ${datosRonda.punto.nombre}`, col2X, h + 152);
+    ctx.fillText(`🔲 Código: ${datosRonda.punto.codigo}`, col2X, h + 194);
+    ctx.fillText(`🔢 Orden: ${datosRonda.punto.orden}`, col2X, h + 236);
+    ctx.fillText(`📱 QR físico: Validado`, col2X, h + 278);
+
+    ctx.fillText(`📅 Fecha: ${fecha}`, margen, h + 332);
+    ctx.fillText(`🕐 Hora: ${hora}`, col2X, h + 332);
+    lineas(ctx, `📌 Dirección: ${direccionActual}`, margen, h + 382, w - (margen * 2), 30);
+  } else {
+    let y = h + 152;
+    const salto = esVertical ? 40 : 38;
+    const maxTexto = w - (margen * 2);
+    const filas = [
+      `🧭 Ronda: ${datosRonda.tipoRonda}`,
+      `👮 Agente: ${datosRonda.agente.nombre}`,
+      `🦺 Cargo: ${datosRonda.agente.cargo}`,
+      `🕐 Turno: ${datosRonda.agente.turno}`,
+      `📍 Punto: ${datosRonda.punto.nombre}`,
+      `🔲 Código: ${datosRonda.punto.codigo}`,
+      `🔢 Orden: ${datosRonda.punto.orden}`,
+      `📱 QR físico: Validado`,
+      `📅 Fecha: ${fecha}`,
+      `🕐 Hora: ${hora}`
+    ];
+    for (const fila of filas) {
+      y = lineas(ctx, fila, margen, y, maxTexto, 28);
+      y += 14;
+    }
+    lineas(ctx, `📌 Dirección: ${direccionActual}`, margen, y + 2, maxTexto, 30);
+  }
 
   ctx.fillStyle = "#94a3b8";
-  ctx.font = "16px Arial";
+  ctx.font = `${esVertical ? 15 : 16}px Arial`;
   ctx.fillText("PREVENCIÓN · Evidencia preparada para envío por WhatsApp", margen, h + info - 26);
 
   comprimirEvidencia(canvas)

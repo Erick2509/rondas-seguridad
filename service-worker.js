@@ -31,7 +31,7 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(clients.openWindow(destino));
 });
 
-const CACHE_NAME = "rondas-seguridad-v16-logo-crop";
+const CACHE_NAME = "rondas-seguridad-v17-camara-responsive";
 const APP_SHELL = [
   "/",
   "/index.html",
