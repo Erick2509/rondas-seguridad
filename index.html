@@ -44,10 +44,8 @@
 </div>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-const firebaseConfig={apiKey:"AIzaSyDf8abFDocep8kEHa45IJ02r_nBY6X8ops",authDomain:"rondas-seguridad-63ba4.firebaseapp.com",projectId:"rondas-seguridad-63ba4",storageBucket:"rondas-seguridad-63ba4.firebasestorage.app",messagingSenderId:"924206639387",appId:"1:924206639387:web:2e730ce51c54cccb624bbe"};
-const db=getFirestore(initializeApp(firebaseConfig));
+import { db } from "./js/firebase.js";
+import { doc, getDoc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 const btnEscanear=document.getElementById("btnEscanear");
 const btnDetener=document.getElementById("btnDetener");
 const mensaje=document.getElementById("mensaje");
@@ -68,9 +66,17 @@ async function mostrarRondaActiva(){
     r.ultimoOrden=Number(d.ultimoOrden||r.ultimoOrden||0);
     r.ultimoPuntoCodigo=d.ultimoPuntoCodigo||r.ultimoPuntoCodigo||null;
     r.totalValidados=Number(d.totalValidados||0);
+    r.notificacionClave=d.notificacionClave||r.notificacionClave||null;
     localStorage.setItem("rondaActiva",JSON.stringify(r)); sessionStorage.setItem("rondaActiva",JSON.stringify(r));
     infoRondaActiva.classList.remove("d-none"); accionesRondaActiva.classList.remove("d-none");
-    infoRondaActiva.innerHTML=`<strong>🔄 RONDA EN CURSO</strong><br>👮 ${r.agente?.nombre||d.agenteNombre||""}<br>🧭 Ronda ${r.tipoRonda||d.tipoRonda||""}<br>📍 Último QR: ${r.ultimoPuntoCodigo||"Inicio pendiente"}<br>🔢 Validados: ${r.totalValidados||0}`;
+    infoRondaActiva.style.whiteSpace="pre-line";
+    infoRondaActiva.textContent=[
+      "🔄 RONDA EN CURSO",
+      `👮 ${r.agente?.nombre||d.agenteNombre||""}`,
+      `🧭 Ronda ${r.tipoRonda||d.tipoRonda||""}`,
+      `📍 Último QR: ${r.ultimoPuntoCodigo||"Inicio pendiente"}`,
+      `🔢 Validados: ${r.totalValidados||0}`
+    ].join("\n");
   }catch(e){console.error(e);}
 }
 mostrarRondaActiva();
@@ -83,8 +89,14 @@ btnCancelarRonda.addEventListener("click",async()=>{
   btnCancelarRonda.disabled=true;
   try{
     const fin=new Date(),inicio=new Date(r.inicio);
-    await updateDoc(doc(db,"rondas",r.rondaId),{estado:"INCOMPLETA",cancelacionTimestamp:serverTimestamp(),horaCancelacionLocal:fin.toISOString(),duracionSegundos:Math.max(0,Math.round((fin-inicio)/1000)),motivoCancelacion:motivo});
-    fetch("/api/notificar-ronda",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tipoEvento:"INCOMPLETA",rondaId:r.rondaId})}).catch(()=>{});
+    const rondaRef=doc(db,"rondas",r.rondaId);
+    await runTransaction(db,async tx=>{
+      const snap=await tx.get(rondaRef);
+      if(!snap.exists())throw new Error("La ronda ya no existe.");
+      if(snap.data().estado!=="EN_CURSO")throw new Error("La ronda ya no está en curso.");
+      tx.update(rondaRef,{estado:"INCOMPLETA",cancelacionTimestamp:serverTimestamp(),horaCancelacionLocal:fin.toISOString(),duracionSegundos:Math.max(0,Math.round((fin-inicio)/1000)),motivoCancelacion:motivo});
+    });
+    fetch("/api/notificar-ronda",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tipoEvento:"INCOMPLETA",rondaId:r.rondaId,notificacionClave:r.notificacionClave||null})}).catch(()=>{});
     localStorage.removeItem("rondaActiva"); sessionStorage.removeItem("rondaActiva"); sessionStorage.removeItem("rondaActual");
     alert("Ronda cancelada. Quedó registrada como INCOMPLETA."); location.reload();
   }catch(e){alert("No se pudo cancelar la ronda: "+(e.message||e));btnCancelarRonda.disabled=false;}

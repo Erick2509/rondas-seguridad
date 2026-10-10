@@ -2,17 +2,11 @@
 /* =========================================================
    FIREBASE CLOUD MESSAGING - ADMINISTRACIÓN
    ========================================================= */
+importScripts("/js/firebase-config.js");
 importScripts("https://www.gstatic.com/firebasejs/12.0.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/12.0.0/firebase-messaging-compat.js");
 
-firebase.initializeApp({
-  apiKey: "AIzaSyDf8abFDocep8kEHa45IJ02r_nBY6X8ops",
-  authDomain: "rondas-seguridad-63ba4.firebaseapp.com",
-  projectId: "rondas-seguridad-63ba4",
-  storageBucket: "rondas-seguridad-63ba4.firebasestorage.app",
-  messagingSenderId: "924206639387",
-  appId: "1:924206639387:web:2e730ce51c54cccb624bbe"
-});
+firebase.initializeApp(self.FIREBASE_CONFIG);
 
 const fcmMessaging = firebase.messaging();
 
@@ -37,7 +31,7 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(clients.openWindow(destino));
 });
 
-const CACHE_NAME = "rondas-seguridad-v12-eliminar-paginacion";
+const CACHE_NAME = "rondas-seguridad-v13-whatsapp-sin-fotos";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -47,6 +41,7 @@ const APP_SHELL = [
   "/admin.html",
   "/instalar-admin.html",
   "/css/estilos.css",
+  "/js/firebase-config.js",
   "/manifest.json",
   "/manifest-admin.json",
   "/icons/icon-192.png",

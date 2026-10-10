@@ -29,7 +29,7 @@ module.exports = async function handler(req, res) {
   try {
     iniciarFirebase();
     const db = admin.firestore();
-    const { tipoEvento, rondaId } = req.body || {};
+    const { tipoEvento, rondaId, notificacionClave } = req.body || {};
 
     if (!["INICIO","COMPLETADA","INCOMPLETA"].includes(tipoEvento) || !rondaId) {
       return res.status(400).json({ ok:false, error:"Solicitud inválida" });
@@ -40,6 +40,12 @@ module.exports = async function handler(req, res) {
     if (!snap.exists) return res.status(404).json({ ok:false });
 
     const r = snap.data();
+
+    // Las rondas nuevas llevan una clave aleatoria por ronda. Evita que una
+    // petición externa dispare notificaciones con solo conocer el ID.
+    if (r.notificacionClave && notificacionClave !== r.notificacionClave) {
+      return res.status(403).json({ ok:false, error:"Solicitud no autorizada" });
+    }
 
     // Nunca confiamos en el evento enviado por el navegador: verificamos
     // el estado real que ya está guardado en Firestore.
@@ -97,6 +103,10 @@ module.exports = async function handler(req, res) {
       body = `${nombre} · ${tipo}. ${r.motivoCancelacion || "Cancelada antes de finalizar."}`;
     }
 
+    const proto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0].trim();
+    const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
+    const appUrl = String(process.env.APP_URL || (host ? `${proto}://${host}` : "")).replace(/\/$/, "");
+
     let enviados = 0;
     for (let i=0; i<docs.length; i+=500) {
       const lote = docs.slice(i,i+500);
@@ -105,10 +115,10 @@ module.exports = async function handler(req, res) {
         notification: { title, body },
         webpush: {
           notification: {
-            icon: "https://rondas-seguridad.vercel.app/icons/admin-192.png",
-            badge: "https://rondas-seguridad.vercel.app/icons/admin-192.png"
+            icon: `${appUrl}/icons/admin-192.png`,
+            badge: `${appUrl}/icons/admin-192.png`
           },
-          fcmOptions: { link: "https://rondas-seguridad.vercel.app/admin.html" }
+          fcmOptions: { link: `${appUrl}/admin.html` }
         }
       });
       enviados += response.successCount;

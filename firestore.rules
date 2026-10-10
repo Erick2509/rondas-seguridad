@@ -1,0 +1,158 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/usuarios/$(request.auth.uid);
+    }
+
+    function activeStaff() {
+      return signedIn() &&
+        exists(userPath()) &&
+        get(userPath()).data.activo == true &&
+        (get(userPath()).data.rol == "ADMIN" || get(userPath()).data.rol == "CLIENTE");
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        exists(userPath()) &&
+        get(userPath()).data.activo == true &&
+        get(userPath()).data.rol == "ADMIN";
+    }
+
+    function agenteActivo(agenteId) {
+      return exists(/databases/$(database)/documents/agentes/$(agenteId)) &&
+        get(/databases/$(database)/documents/agentes/$(agenteId)).data.activo == true;
+    }
+
+    function puntoActivo(codigo) {
+      return exists(/databases/$(database)/documents/puntos/$(codigo)) &&
+        get(/databases/$(database)/documents/puntos/$(codigo)).data.activo == true;
+    }
+
+    function progresoValido(rondaId) {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      let codigo = request.resource.data.ultimoPuntoCodigo;
+      let punto = get(/databases/$(database)/documents/puntos/$(codigo)).data;
+      return resource.data.estado == "EN_CURSO" &&
+        changed.hasOnly([
+          "ultimoOrden", "ultimoPuntoCodigo", "totalValidados",
+          "estado", "finTimestamp", "horaFinLocal", "duracionSegundos"
+        ]) &&
+        request.resource.data.ultimoOrden == resource.data.get("ultimoOrden", 0) + 1 &&
+        request.resource.data.totalValidados == resource.data.get("totalValidados", 0) + 1 &&
+        puntoActivo(codigo) &&
+        punto.tipoRonda == resource.data.tipoRonda &&
+        punto.orden == request.resource.data.ultimoOrden &&
+        existsAfter(/databases/$(database)/documents/rondas/$(rondaId)/validaciones/$(codigo)) &&
+        (
+          (punto.funcionQR != "FINAL" && request.resource.data.estado == "EN_CURSO") ||
+          (punto.funcionQR == "FINAL" && request.resource.data.estado == "COMPLETADA")
+        );
+    }
+
+    function cancelacionValida() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return resource.data.estado == "EN_CURSO" &&
+        request.resource.data.estado == "INCOMPLETA" &&
+        changed.hasOnly([
+          "estado", "cancelacionTimestamp", "horaCancelacionLocal",
+          "duracionSegundos", "motivoCancelacion"
+        ]);
+    }
+
+    match /usuarios/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if false;
+    }
+
+    match /puntos/{codigo} {
+      // La app de ronda solo puede leer puntos activos. El ADMIN administra todos.
+      allow read: if isAdmin() || (!signedIn() && resource.data.activo == true);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /agentes/{agenteId} {
+      // El agente se consulta por su código; no se expone el listado a usuarios anónimos.
+      allow get: if isAdmin() || (!signedIn() && resource.data.activo == true);
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /rondas/{rondaId} {
+      // Panel autenticado: historial completo. App de ronda: get por ID aleatorio.
+      allow list: if activeStaff();
+      allow get: if true;
+
+      // Inicio de ronda desde la PWA de agentes.
+      allow create: if
+        request.resource.data.estado == "EN_CURSO" &&
+        request.resource.data.totalValidados == 0 &&
+        request.resource.data.ultimoOrden == 0 &&
+        request.resource.data.ultimoPuntoCodigo == null &&
+        request.resource.data.tipoRonda in ["INTERNA", "EXTERNA"] &&
+        request.resource.data.ruta is list &&
+        request.resource.data.ruta.size() >= 2 &&
+        request.resource.data.ruta.size() <= 100 &&
+        request.resource.data.totalPuntosPlanificados == request.resource.data.ruta.size() &&
+        request.resource.data.notificacionClave is string &&
+        request.resource.data.notificacionClave.size() >= 20 &&
+        request.resource.data.notificacionClave.size() <= 100 &&
+        agenteActivo(request.resource.data.agenteId) &&
+        request.resource.data.agenteNombre ==
+          get(/databases/$(database)/documents/agentes/$(request.resource.data.agenteId)).data.nombre &&
+        request.resource.data.agenteCargo ==
+          get(/databases/$(database)/documents/agentes/$(request.resource.data.agenteId)).data.cargo &&
+        request.resource.data.agenteTurno ==
+          get(/databases/$(database)/documents/agentes/$(request.resource.data.agenteId)).data.turno &&
+        puntoActivo(request.resource.data.inicioQrCodigo) &&
+        get(/databases/$(database)/documents/puntos/$(request.resource.data.inicioQrCodigo)).data.tipoRonda ==
+          request.resource.data.tipoRonda &&
+        get(/databases/$(database)/documents/puntos/$(request.resource.data.inicioQrCodigo)).data.funcionQR == "INICIO" &&
+        get(/databases/$(database)/documents/puntos/$(request.resource.data.inicioQrCodigo)).data.orden == 1;
+
+      // Durante la ronda solo se permiten: avance secuencial o cancelación.
+      allow update: if isAdmin() || cancelacionValida() || progresoValido(rondaId);
+      allow delete: if isAdmin();
+
+      match /validaciones/{codigo} {
+        allow read: if activeStaff();
+
+        allow create: if
+          !exists(/databases/$(database)/documents/rondas/$(rondaId)/validaciones/$(codigo)) &&
+          get(/databases/$(database)/documents/rondas/$(rondaId)).data.estado == "EN_CURSO" &&
+          request.resource.data.puntoCodigo == codigo &&
+          request.resource.data.qrValidado == true &&
+          request.resource.data.metodoValidacion == "QR_FISICO" &&
+          request.resource.data.evidenciaWhatsApp == true &&
+          request.resource.data.fotoAlmacenada == false &&
+          puntoActivo(codigo) &&
+          get(/databases/$(database)/documents/puntos/$(codigo)).data.tipoRonda ==
+            get(/databases/$(database)/documents/rondas/$(rondaId)).data.tipoRonda &&
+          request.resource.data.orden ==
+            get(/databases/$(database)/documents/rondas/$(rondaId)).data.get("ultimoOrden", 0) + 1 &&
+          get(/databases/$(database)/documents/puntos/$(codigo)).data.orden == request.resource.data.orden &&
+          getAfter(/databases/$(database)/documents/rondas/$(rondaId)).data.ultimoPuntoCodigo == codigo &&
+          getAfter(/databases/$(database)/documents/rondas/$(rondaId)).data.ultimoOrden == request.resource.data.orden;
+
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
+    }
+
+    match /dispositivosPush/{deviceId} {
+      allow read: if isAdmin();
+      allow create, update: if activeStaff() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+    }
+
+    // Esta colección la administra exclusivamente Firebase Admin desde la API.
+    match /eventosPush/{eventoId} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -163,6 +163,7 @@ const auth = getAuth();
 let rolActual = null;
 let usuarioActual = null;
 let accesoResuelto = false;
+let panelInicializado = false;
 
 function ocultarFuncionesEdicionParaCliente() {
     // La cliente solo usa el historial de rondas.
@@ -205,12 +206,8 @@ function ocultarFuncionesEdicionParaCliente() {
         ) el.style.display="none";
     });
 
-    // Abre la pestaña Rondas.
-    const candidatos=[...document.querySelectorAll("button,a")];
-    const rondas=candidatos.find(function(el){
-        return (el.textContent||"").trim().toUpperCase()==="RONDAS";
-    });
-    if(rondas) rondas.click();
+    // La pestaña Rondas se abre después de resolver el rol para evitar
+    // consultas duplicadas mientras el panel todavía está iniciando.
 }
 
 async function resolverAcceso(user) {
@@ -248,6 +245,15 @@ async function resolverAcceso(user) {
     }
 
     document.body.style.visibility = "visible";
+
+    iniciarNotificacionesRondas();
+
+    if (!panelInicializado) {
+        panelInicializado = true;
+        inicializarPanelSegunRol().catch(function(e) {
+            console.error("No se pudo inicializar el panel:", e);
+        });
+    }
 }
 
 onAuthStateChanged(auth, function(user) {
@@ -260,6 +266,10 @@ onAuthStateChanged(auth, function(user) {
 const btnCerrarSesion=document.getElementById("btnCerrarSesion");
 if(btnCerrarSesion){
     btnCerrarSesion.addEventListener("click", async function(){
+        if (unsubscribeNotificaciones) {
+            unsubscribeNotificaciones();
+            unsubscribeNotificaciones = null;
+        }
         await signOut(auth);
         location.replace("login.html");
     });
@@ -393,8 +403,10 @@ let puntoEditandoId = null;
 
 // Historial: 10 rondas por página para ADMIN y CLIENTE.
 const RONDAS_POR_PAGINA = 10;
+const CACHE_RONDAS_MS = 60 * 1000;
 let paginaRondas = 1;
 let rondasVistaActual = [];
+let ultimaCargaRondasMs = 0;
 
 
 // =====================================================
@@ -402,6 +414,10 @@ let rondasVistaActual = [];
 // =====================================================
 
 function mostrarSeccion(nombre) {
+
+    if (rolActual === "CLIENTE" && nombre !== "rondas") {
+        nombre = "rondas";
+    }
 
     seccionInicio.classList.remove("activa");
     seccionRondas.classList.remove("activa");
@@ -744,7 +760,15 @@ async function cargarValidacionesRonda(rondaId) {
 // CARGAR RONDAS
 // =====================================================
 
-async function cargarRondas() {
+async function cargarRondas(forzar = false) {
+
+    if (!forzar && rondas.length > 0 && (Date.now() - ultimaCargaRondasMs) < CACHE_RONDAS_MS) {
+        actualizarResumenRondas();
+        instalarFiltrosRondas();
+        actualizarOpcionesFiltrosRondas();
+        aplicarFiltrosRondas();
+        return;
+    }
 
     error.style.display = "none";
     cargando.style.display = "block";
@@ -773,32 +797,12 @@ async function cargarRondas() {
             }
         );
 
-        // Cargar los QR validados de cada ronda nueva.
-        await Promise.all(
-            documentos.map(
-                async function (ronda) {
-
-                    if (esRondaNueva(ronda)) {
-                        try {
-                            ronda.validaciones =
-                                await cargarValidacionesRonda(
-                                    ronda.id
-                                );
-                        } catch (e) {
-                            console.error(
-                                "No se pudieron cargar validaciones de " +
-                                ronda.id,
-                                e
-                            );
-
-                            ronda.validaciones = [];
-                        }
-                    } else {
-                        ronda.validaciones = [];
-                    }
-                }
-            )
-        );
+        // IMPORTANTE: no descargamos las subcolecciones de validaciones aquí.
+        // Cada detalle se carga recién cuando el usuario pulsa VER DETALLE.
+        // Esto evita una lectura por cada QR de cada ronda al abrir el panel.
+        documentos.forEach(function(ronda) {
+            ronda.validaciones = esRondaNueva(ronda) ? null : [];
+        });
 
         documentos.sort(
             function (a, b) {
@@ -821,6 +825,7 @@ async function cargarRondas() {
         );
 
         rondas = documentos;
+        ultimaCargaRondasMs = Date.now();
 
         cargando.style.display = "none";
 
@@ -880,22 +885,51 @@ function actualizarResumenRondas() {
 // =====================================================
 
 function obtenerResumenRecorrido(ronda) {
-    const ruta = puntos
-        .filter(function (punto) {
-            return punto.activo === true &&
-                punto.tipoRonda === ronda.tipoRonda &&
-                Number(punto.orden || 0) > 0;
+    // Las rondas nuevas guardan una copia del recorrido al iniciar. Así,
+    // editar puntos mañana no cambia el historial de una ronda anterior.
+    let ruta = Array.isArray(ronda.ruta) && ronda.ruta.length
+        ? ronda.ruta.map(function(p) {
+            return {
+                id: p.codigo || p.id,
+                codigo: p.codigo || p.id,
+                nombre: p.nombre || "Punto",
+                tipoRonda: ronda.tipoRonda,
+                funcionQR: p.funcionQR,
+                orden: Number(p.orden || 0),
+                activo: true
+            };
         })
-        .sort(function (a, b) {
-            return Number(a.orden || 0) - Number(b.orden || 0);
-        });
+        : puntos
+            .filter(function (punto) {
+                return punto.activo === true &&
+                    punto.tipoRonda === ronda.tipoRonda &&
+                    Number(punto.orden || 0) > 0;
+            })
+            .sort(function (a, b) {
+                return Number(a.orden || 0) - Number(b.orden || 0);
+            });
 
-    const validados = new Set(
-        (Array.isArray(ronda.validaciones) ? ronda.validaciones : [])
-            .map(function (v) {
+    ruta = ruta.slice().sort(function(a,b) {
+        return Number(a.orden || 0) - Number(b.orden || 0);
+    });
+
+    let validados;
+    if (Array.isArray(ronda.validaciones)) {
+        validados = new Set(
+            ronda.validaciones.map(function (v) {
                 return String(v.puntoCodigo || v.puntoId || "").toUpperCase();
             })
-    );
+        );
+    } else {
+        // Como el sistema obliga a una secuencia estricta, ultimoOrden permite
+        // calcular el progreso sin leer la subcolección de validaciones.
+        const ultimoOrden = Number(ronda.ultimoOrden || ronda.totalValidados || 0);
+        validados = new Set(
+            ruta
+                .filter(function(p) { return Number(p.orden || 0) <= ultimoOrden; })
+                .map(function(p) { return String(p.codigo || p.id || "").toUpperCase(); })
+        );
+    }
 
     const faltantes = ruta.filter(function (punto) {
         const codigo = String(punto.codigo || punto.id || "").toUpperCase();
@@ -997,12 +1031,19 @@ function crearBloqueValidaciones(ronda) {
         titulo
     );
 
-    if (
-        !Array.isArray(
-            ronda.validaciones
-        ) ||
-        ronda.validaciones.length === 0
-    ) {
+    bloque.dataset.validacionesRonda = ronda.id || "";
+
+    if (!Array.isArray(ronda.validaciones)) {
+        const pendiente = document.createElement("div");
+        pendiente.className = "punto-fecha";
+        pendiente.textContent = Number(ronda.totalValidados || 0) > 0
+            ? "Pulsa VER DETALLE para cargar los QR registrados."
+            : "Aún no hay QR registrados en esta ronda.";
+        bloque.appendChild(pendiente);
+        return bloque;
+    }
+
+    if (ronda.validaciones.length === 0) {
 
         const vacio =
             document.createElement(
@@ -1114,8 +1155,10 @@ function crearBloqueValidaciones(ronda) {
             }
 
             if (
-                validacion.latitud !== undefined &&
-                validacion.longitud !== undefined
+                validacion.latitud !== null && validacion.latitud !== undefined &&
+                validacion.longitud !== null && validacion.longitud !== undefined &&
+                Number.isFinite(Number(validacion.latitud)) &&
+                Number.isFinite(Number(validacion.longitud))
             ) {
                 const gps = document.createElement("div");
                 gps.className = "detalle-validacion-extra";
@@ -1131,6 +1174,13 @@ function crearBloqueValidaciones(ronda) {
                 qrFisico.className = "detalle-validacion-extra";
                 qrFisico.textContent = "📱 QR físico: VALIDADO";
                 item.appendChild(qrFisico);
+            }
+
+            if (validacion.evidenciaWhatsApp === true || validacion.metodoEvidencia === "WHATSAPP_GRUPO") {
+                const evidencia = document.createElement("div");
+                evidencia.className = "detalle-validacion-extra";
+                evidencia.textContent = "📲 Evidencia: enviada por WhatsApp · foto no almacenada";
+                item.appendChild(evidencia);
             }
 
             bloque.appendChild(
@@ -1149,6 +1199,9 @@ function crearBloqueValidaciones(ronda) {
 // =====================================================
 
 function totalPuntosRonda(ronda) {
+    const planificado = Number(ronda.totalPuntosPlanificados || 0);
+    if (planificado > 0) return planificado;
+
     const resumen = obtenerResumenRecorrido(ronda);
     if (resumen.ruta.length > 0) return resumen.ruta.length;
 
@@ -1203,7 +1256,7 @@ function crearResumenTarjetaRonda(ronda) {
     return resumen;
 }
 
-function crearBotonVerDetalle(detalle) {
+function crearBotonVerDetalle(detalle, ronda = null) {
     const boton = document.createElement("button");
     boton.type = "button";
     boton.className = "btn-ver-detalle";
@@ -1213,8 +1266,28 @@ function crearBotonVerDetalle(detalle) {
     detalle.hidden = true;
     detalle.classList.add("detalle-ronda-expandible");
 
-    boton.addEventListener("click", function() {
+    boton.addEventListener("click", async function() {
         const abrir = detalle.hidden;
+
+        if (abrir && ronda && esRondaNueva(ronda) && !Array.isArray(ronda.validaciones)) {
+            boton.disabled = true;
+            boton.textContent = "⏳ CARGANDO DETALLE...";
+            try {
+                ronda.validaciones = Number(ronda.totalValidados || 0) > 0
+                    ? await cargarValidacionesRonda(ronda.id)
+                    : [];
+
+                const actual = detalle.querySelector('[data-validaciones-ronda]');
+                if (actual) actual.replaceWith(crearBloqueValidaciones(ronda));
+            } catch (e) {
+                console.error("No se pudo cargar el detalle de la ronda:", e);
+                ronda.validaciones = null;
+                alert("No se pudo cargar el detalle de los QR. Revisa tu conexión e intenta nuevamente.");
+            } finally {
+                boton.disabled = false;
+            }
+        }
+
         detalle.hidden = !abrir;
         boton.setAttribute("aria-expanded", abrir ? "true" : "false");
         boton.textContent = abrir
@@ -1600,7 +1673,7 @@ function mostrarRondas(
             );
 
             const resumenTarjeta = crearResumenTarjetaRonda(ronda);
-            const botonDetalle = crearBotonVerDetalle(detalle);
+            const botonDetalle = crearBotonVerDetalle(detalle, ronda);
 
             tarjeta.appendChild(superior);
             tarjeta.appendChild(resumenTarjeta);
@@ -1953,7 +2026,7 @@ buscador.addEventListener(
 
 btnActualizar.addEventListener(
     "click",
-    cargarRondas
+    function() { cargarRondas(true); }
 );
 
 
@@ -4076,15 +4149,24 @@ agenteNombre.addEventListener(
 // INICIAR PANEL
 // =====================================================
 
-cargarPuntos()
-    .then(function () {
-        return cargarRondas();
-    })
-    .catch(function () {
-        return cargarRondas();
-    });
+async function inicializarPanelSegunRol() {
+    if (!accesoResuelto || !rolActual) return;
 
-cargarAgentes();
+    if (rolActual === "CLIENTE") {
+        // CLIENTE solo necesita el historial. No descargamos puntos ni agentes.
+        // mostrarSeccion ya dispara una única carga de rondas.
+        mostrarSeccion("rondas");
+        return;
+    }
+
+    // ADMIN sí necesita catálogos para administrar el sistema.
+    await Promise.allSettled([
+        cargarPuntos(),
+        cargarAgentes(),
+        cargarRondas()
+    ]);
+}
+
 
 // Segunda barrera visual: bloquea acciones de edición en modo CLIENTE.
 document.addEventListener("click", function(e) {
@@ -4159,7 +4241,62 @@ function crearNotifs(d){
 
     return eventos;
 }
-function renderNotifs(){const l=document.getElementById("listaNotificaciones"),c=document.getElementById("contadorNotificaciones");if(!l||!c)return;const le=idsLeidos(),n=notificacionesRondas.filter(x=>!le.has(x.id)).length;c.textContent=n>99?"99+":String(n);c.hidden=n===0;l.innerHTML="";if(!notificacionesRondas.length){l.innerHTML='<div class="notificacion-vacia">No hay notificaciones.</div>';return}notificacionesRondas.forEach(x=>{const e=document.createElement("div");e.className="notificacion-item"+(le.has(x.id)?"":" no-leida");e.innerHTML=`<div class="notificacion-titulo">${x.titulo}</div><div class="notificacion-detalle">${x.detalle}</div><div class="notificacion-hora">${x.ms?new Date(x.ms).toLocaleString("es-PE"):""}</div>`;e.onclick=()=>{const s=idsLeidos();s.add(x.id);guardarLeidos(s);renderNotifs()};l.appendChild(e)})}
-function iniciarNotificacionesRondas(){if(unsubscribeNotificaciones)unsubscribeNotificaciones();unsubscribeNotificaciones=onSnapshot(collection(db,"rondas"),s=>{notificacionesRondas=s.docs.flatMap(crearNotifs).sort((a,b)=>b.ms-a.ms).slice(0,50);renderNotifs()},e=>console.error("Notificaciones:",e))}
+function renderNotifs(){
+    const lista=document.getElementById("listaNotificaciones");
+    const contador=document.getElementById("contadorNotificaciones");
+    if(!lista||!contador)return;
+
+    const leidos=idsLeidos();
+    const pendientes=notificacionesRondas.filter(x=>!leidos.has(x.id)).length;
+    contador.textContent=pendientes>99?"99+":String(pendientes);
+    contador.hidden=pendientes===0;
+    lista.innerHTML="";
+
+    if(!notificacionesRondas.length){
+        const vacia=document.createElement("div");
+        vacia.className="notificacion-vacia";
+        vacia.textContent="No hay notificaciones.";
+        lista.appendChild(vacia);
+        return;
+    }
+
+    notificacionesRondas.forEach(x=>{
+        const item=document.createElement("div");
+        item.className="notificacion-item"+(leidos.has(x.id)?"":" no-leida");
+
+        const titulo=document.createElement("div");
+        titulo.className="notificacion-titulo";
+        titulo.textContent=x.titulo;
+
+        const detalle=document.createElement("div");
+        detalle.className="notificacion-detalle";
+        detalle.textContent=x.detalle;
+
+        const hora=document.createElement("div");
+        hora.className="notificacion-hora";
+        hora.textContent=x.ms?new Date(x.ms).toLocaleString("es-PE"):"";
+
+        item.appendChild(titulo);
+        item.appendChild(detalle);
+        item.appendChild(hora);
+        item.onclick=()=>{
+            const set=idsLeidos();
+            set.add(x.id);
+            guardarLeidos(set);
+            renderNotifs();
+        };
+        lista.appendChild(item);
+    });
+}
+
+function iniciarNotificacionesRondas(){
+    if(unsubscribeNotificaciones)unsubscribeNotificaciones();
+    // Solo escuchamos las 50 rondas más recientes; no toda la colección.
+    const qNotificaciones=query(collection(db,"rondas"),orderBy("inicioTimestamp","desc"),limit(50));
+    unsubscribeNotificaciones=onSnapshot(qNotificaciones,s=>{
+        notificacionesRondas=s.docs.flatMap(crearNotifs).sort((a,b)=>b.ms-a.ms).slice(0,50);
+        renderNotifs();
+    },e=>console.error("Notificaciones:",e));
+}
 document.addEventListener("DOMContentLoaded",()=>{const b=document.getElementById("btnNotificaciones"),p=document.getElementById("panelNotificaciones"),m=document.getElementById("btnMarcarLeidas");if(b&&p)b.onclick=e=>{e.stopPropagation();p.hidden=!p.hidden};document.addEventListener("click",e=>{if(p&&!p.hidden&&!p.contains(e.target)&&e.target!==b)p.hidden=true});if(m)m.onclick=()=>{const s=idsLeidos();notificacionesRondas.forEach(x=>s.add(x.id));guardarLeidos(s);renderNotifs()}}); 
-onAuthStateChanged(auth,u=>{if(u)iniciarNotificacionesRondas();else if(unsubscribeNotificaciones){unsubscribeNotificaciones();unsubscribeNotificaciones=null}});
+
