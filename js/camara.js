@@ -265,6 +265,17 @@ function lineas(ctx, texto, x, y, max, alto) {
   return py;
 }
 
+function rectRedondeado(ctx, x, y, ancho, alto, radio) {
+  const r = Math.min(radio, ancho / 2, alto / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + ancho, y, x + ancho, y + alto, r);
+  ctx.arcTo(x + ancho, y + alto, x, y + alto, r);
+  ctx.arcTo(x, y + alto, x, y, r);
+  ctx.arcTo(x, y, x + ancho, y, r);
+  ctx.closePath();
+}
+
 async function generarImagen(img) {
   const max = 1200;
   let w = img.width;
@@ -282,39 +293,67 @@ async function generarImagen(img) {
   const ctx = canvas.getContext("2d");
 
   ctx.drawImage(img, 0, 0, w, h);
-  ctx.fillStyle = "#111827";
+
+  const logoDisponible = await logoLista;
+  if (logoDisponible) {
+    const pad = 20;
+    const boxW = Math.min(270, Math.max(165, w * 0.26));
+    const boxH = Math.round(boxW * 0.34);
+    const boxX = w - boxW - pad;
+    const boxY = pad;
+    ctx.save();
+    ctx.fillStyle = "rgba(15, 23, 42, 0.76)";
+    rectRedondeado(ctx, boxX, boxY, boxW, boxH, 16);
+    ctx.fill();
+    const logoPad = 14;
+    ctx.drawImage(logoMarca, boxX + logoPad, boxY + logoPad, boxW - logoPad * 2, boxH - logoPad * 2);
+    ctx.restore();
+  }
+
+  ctx.fillStyle = "#0f172a";
   ctx.fillRect(0, h, w, info);
 
   ctx.fillStyle = "#fbbf24";
   ctx.fillRect(0, h, w, 10);
 
-  const logoDisponible = await logoLista;
-  if (logoDisponible) {
-    const logoAncho = Math.min(300, Math.max(170, w * 0.28));
-    const proporcion = logoMarca.naturalWidth && logoMarca.naturalHeight
-      ? logoMarca.naturalHeight / logoMarca.naturalWidth
-      : 0.22;
-    const logoAlto = logoAncho * proporcion;
-    ctx.drawImage(logoMarca, 30, h + 24, logoAncho, logoAlto);
-  }
-
-  ctx.fillStyle = "#fff";
-  ctx.font = "bold 30px Arial";
-  ctx.fillText("EVIDENCIA DE RONDA", 30, h + 105);
-  ctx.font = "22px Arial";
-
   const fecha = fechaFoto.toLocaleDateString("es-PE");
   const hora = fechaFoto.toLocaleTimeString("es-PE");
+  const margen = 30;
+  const col2X = Math.max(w * 0.5, 360);
 
-  ctx.fillText(`🧭 Ronda ${datosRonda.tipoRonda}`, 30, h + 150);
-  ctx.fillText(`👮 ${datosRonda.agente.nombre}`, 30, h + 190);
-  ctx.fillText(`🦺 ${datosRonda.agente.cargo}`, 30, h + 230);
-  ctx.fillText(`🕐 ${datosRonda.agente.turno}`, 30, h + 270);
-  ctx.fillText(`📍 ${datosRonda.punto.nombre} (${datosRonda.punto.codigo})`, 30, h + 310);
-  ctx.fillText(`🔢 Orden: ${datosRonda.punto.orden}`, 30, h + 350);
-  ctx.fillText(`📅 Fecha: ${fecha}`, 30, h + 390);
-  ctx.fillText(`🕐 Hora: ${hora}`, 30, h + 430);
-  lineas(ctx, `📌 ${direccionActual}`, 30, h + 475, w - 60, 30);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 34px Arial";
+  ctx.fillText("EVIDENCIA DE RONDA", margen, h + 60);
+  ctx.fillStyle = "#cbd5e1";
+  ctx.font = "18px Arial";
+  ctx.fillText("Registro validado para control de seguridad", margen, h + 92);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.14)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margen, h + 118);
+  ctx.lineTo(w - margen, h + 118);
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "22px Arial";
+  ctx.fillText(`🧭 Ronda: ${datosRonda.tipoRonda}`, margen, h + 160);
+  ctx.fillText(`👮 Agente: ${datosRonda.agente.nombre}`, margen, h + 202);
+  ctx.fillText(`🦺 Cargo: ${datosRonda.agente.cargo}`, margen, h + 244);
+  ctx.fillText(`🕐 Turno: ${datosRonda.agente.turno}`, margen, h + 286);
+
+  ctx.fillText(`📍 Punto: ${datosRonda.punto.nombre}`, col2X, h + 160);
+  ctx.fillText(`🔲 Código: ${datosRonda.punto.codigo}`, col2X, h + 202);
+  ctx.fillText(`🔢 Orden: ${datosRonda.punto.orden}`, col2X, h + 244);
+  ctx.fillText(`📱 QR físico: Validado`, col2X, h + 286);
+
+  ctx.fillText(`📅 Fecha: ${fecha}`, margen, h + 340);
+  ctx.fillText(`🕐 Hora: ${hora}`, col2X, h + 340);
+  lineas(ctx, `📌 Dirección: ${direccionActual}`, margen, h + 390, w - (margen * 2), 30);
+
+  ctx.fillStyle = "#94a3b8";
+  ctx.font = "16px Arial";
+  ctx.fillText("PREVENCIÓN · Evidencia preparada para envío por WhatsApp", margen, h + info - 26);
 
   comprimirEvidencia(canvas)
     .then(blob => {

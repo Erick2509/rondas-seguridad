@@ -31,7 +31,7 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(clients.openWindow(destino));
 });
 
-const CACHE_NAME = "rondas-seguridad-v14-logo-camara-directa";
+const CACHE_NAME = "rondas-seguridad-v15-marca-agua-pro";
 const APP_SHELL = [
   "/",
   "/index.html",
